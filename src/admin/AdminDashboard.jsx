@@ -13,7 +13,7 @@ export default function AdminDashboard() {
     const fetchConsolidatedMunicipalStats = async () => {
       try {
         // Query the master endpoint using 'ALL' to bypass departmental walls
-        const res = await fetch(`http://localhost:5000/api/dashboard/stats/ALL`);
+        const res = await fetch(`https://municipal-budget-backend.onrender.com/api/dashboard/stats/ALL`);
         if (res.ok) {
           setStats(await res.json());
         }

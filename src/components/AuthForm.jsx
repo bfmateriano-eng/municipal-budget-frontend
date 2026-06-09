@@ -43,7 +43,7 @@ export default function AuthForm({ onLoginSuccess }) {
 
     if (isLogin) {
       try {
-        const response = await fetch('http://localhost:5000/api/login', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -60,7 +60,7 @@ export default function AuthForm({ onLoginSuccess }) {
     } else {
       const registrationData = { email, password, nameOfUser, userType, department, nameOfEndUser: nameOfUser, contactNumber };
       try {
-        const response = await fetch('http://localhost:5000/api/register', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(registrationData),

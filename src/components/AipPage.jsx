@@ -82,10 +82,10 @@ export default function AipPage({ user }) {
   const loadDependencies = async () => {
     try {
       const targetDept = user?.department || '';
-      const ldipRes = await fetch(`http://localhost:5000/api/ldip/${encodeURIComponent(targetDept)}`);
+      const ldipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/ldip/${encodeURIComponent(targetDept)}`);
       if (ldipRes.ok) setLdipPrograms(await ldipRes.json());
       
-      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(targetDept)}`);
+      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(targetDept)}`);
       if (aipRes.ok) {
         const rawData = await aipRes.json();
         // Defensive Guard: Filter out any null or malformed array structures coming from the server
@@ -137,7 +137,7 @@ export default function AipPage({ user }) {
     }];
 
     try {
-      const response = await fetch('http://localhost:5000/api/aip', {
+      const response = await fetch('https://municipal-budget-backend.onrender.com/api/aip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries: shellEntry })
@@ -178,7 +178,7 @@ export default function AipPage({ user }) {
       };
 
       try {
-        const res = await fetch('http://localhost:5000/api/aip/update', {
+        const res = await fetch('https://municipal-budget-backend.onrender.com/api/aip/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ originalRefCode: activeTargetRow.aipRefCode, updatedEntry })
@@ -215,7 +215,7 @@ export default function AipPage({ user }) {
         };
 
         try {
-          const res = await fetch('http://localhost:5000/api/aip/update', {
+          const res = await fetch('https://municipal-budget-backend.onrender.com/api/aip/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ originalRefCode: activeTargetRow.aipRefCode, updatedEntry: { ...updatedEntry, aipRefCode: codeValueString } })
@@ -239,7 +239,7 @@ export default function AipPage({ user }) {
         }];
 
         try {
-          const response = await fetch('http://localhost:5000/api/aip', {
+          const response = await fetch('https://municipal-budget-backend.onrender.com/api/aip', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ entries: appendPayload })
@@ -259,7 +259,7 @@ export default function AipPage({ user }) {
     const confirmation = window.confirm(`Permanently delete entry: "${entry.aipRefCode}"?`);
     if (!confirmation) return;
     try {
-      const res = await fetch('http://localhost:5000/api/aip/delete', {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/aip/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aipRefCode: entry.aipRefCode })

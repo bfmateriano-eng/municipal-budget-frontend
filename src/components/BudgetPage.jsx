@@ -32,11 +32,11 @@ export default function BudgetPage({ user }) {
     try {
       const dept = user?.department || '';
       
-      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(dept)}`);
+      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
       const aipData = aipRes.ok ? await aipRes.json() : [];
       setAllAipItems(Array.isArray(aipData) ? aipData.filter(item => item !== null) : []);
 
-      const budgetRes = await fetch(`http://localhost:5000/api/budget/${encodeURIComponent(dept)}`);
+      const budgetRes = await fetch(`https://municipal-budget-backend.onrender.com/api/budget/${encodeURIComponent(dept)}`);
       const budgetData = budgetRes.ok ? await budgetRes.json() : [];
       setBudgetLedger(budgetData);
 
@@ -145,7 +145,7 @@ export default function BudgetPage({ user }) {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/budget', {
+      const response = await fetch('https://municipal-budget-backend.onrender.com/api/budget', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalSubmissionBody)

@@ -69,10 +69,10 @@ export default function AdminConsolidatedRecords() {
       
       // Concurrently query matching records from the server based on the active Office selection
       const [ldipRes, aipRes, budgetRes, ppmpRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/ldip/${token}`),
-        fetch(`http://localhost:5000/api/aip/${token}`),
-        fetch(`http://localhost:5000/api/budget/${token}`),
-        fetch(`http://localhost:5000/api/ppmp/${token}`)
+        fetch(`https://municipal-budget-backend.onrender.com/api/ldip/${token}`),
+        fetch(`https://municipal-budget-backend.onrender.com/api/aip/${token}`),
+        fetch(`https://municipal-budget-backend.onrender.com/api/budget/${token}`),
+        fetch(`https://municipal-budget-backend.onrender.com/api/ppmp/${token}`)
       ]);
 
       setLdipList(ldipRes.ok ? await ldipRes.json() : []);

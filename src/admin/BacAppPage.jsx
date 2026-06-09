@@ -47,11 +47,11 @@ export default function BacAppPage() {
   const loadAppConsolidationMatrix = async () => {
     setLoading(true);
     try {
-      const appRes = await fetch('http://localhost:5000/api/app');
+      const appRes = await fetch('https://municipal-budget-backend.onrender.com/api/app');
       const appData = appRes.ok ? await appRes.json() : [];
       setAppLedger(appData);
 
-      const ppmpRes = await fetch('http://localhost:5000/api/ppmp/ALL');
+      const ppmpRes = await fetch('https://municipal-budget-backend.onrender.com/api/ppmp/ALL');
       const ppmpData = ppmpRes.ok ? await ppmpRes.json() : [];
 
       const pendingConsolidation = ppmpData.filter(p => 
@@ -109,7 +109,7 @@ export default function BacAppPage() {
     };
 
     try {
-      const res = await fetch('http://localhost:5000/api/app', {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/app', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

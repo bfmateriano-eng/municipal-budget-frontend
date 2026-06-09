@@ -29,7 +29,7 @@ export default function AdminAccounts() {
   const loadUserDirectory = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/users');
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/users');
       if (res.ok) setUsers(await res.json());
     } catch (e) {
       console.error("Failed to load global accounts roster:", e);
@@ -49,7 +49,7 @@ export default function AdminAccounts() {
     };
 
     try {
-      const res = await fetch('http://localhost:5000/api/users/update', {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/users/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedBody)
@@ -67,7 +67,7 @@ export default function AdminAccounts() {
     if (!confirmErase) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/users/delete', {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/users/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

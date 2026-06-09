@@ -28,15 +28,15 @@ export default function PpmpPage({ user }) {
     try {
       const dept = user?.department || '';
 
-      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(dept)}`);
+      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
       const aipData = aipRes.ok ? await aipRes.json() : [];
       setAllAipItems(Array.isArray(aipData) ? aipData.filter(x => x !== null) : []);
 
-      const budgetRes = await fetch(`http://localhost:5000/api/budget/${encodeURIComponent(dept)}`);
+      const budgetRes = await fetch(`https://municipal-budget-backend.onrender.com/api/budget/${encodeURIComponent(dept)}`);
       const budgetData = budgetRes.ok ? await budgetRes.json() : [];
       setFullBudgetList(budgetData);
 
-      const ppmpRes = await fetch(`http://localhost:5000/api/ppmp/${encodeURIComponent(dept)}`);
+      const ppmpRes = await fetch(`https://municipal-budget-backend.onrender.com/api/ppmp/${encodeURIComponent(dept)}`);
       const ppmpData = ppmpRes.ok ? await ppmpRes.json() : [];
       setPpmpLedger(ppmpData);
     } catch (err) { console.error(err); }
@@ -79,7 +79,7 @@ export default function PpmpPage({ user }) {
     });
 
     try {
-      const res = await fetch('http://localhost:5000/api/ppmp', {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/ppmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries: batchEntriesArray })
@@ -158,7 +158,7 @@ export default function PpmpPage({ user }) {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/ppmp/update', {
+      const response = await fetch('https://municipal-budget-backend.onrender.com/api/ppmp/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aipRefCode: activeEditingRow.aipRefCode, updatedPlan: updatedPlanBody })

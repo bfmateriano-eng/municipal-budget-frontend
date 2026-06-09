@@ -16,7 +16,7 @@ export default function BudgetStats() {
         const parsed = JSON.parse(savedUser);
         const dept = parsed.department || '';
 
-        const res = await fetch(`http://localhost:5000/api/dashboard/stats/${encodeURIComponent(dept)}`);
+        const res = await fetch(`https://municipal-budget-backend.onrender.com/api/dashboard/stats/${encodeURIComponent(dept)}`);
         if (res.ok) setStats(await res.json());
       } catch (e) { console.error(e); }
     };

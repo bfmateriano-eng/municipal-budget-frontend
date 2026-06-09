@@ -85,7 +85,7 @@ export default function LdipPage({ user }) {
     try {
       const dept = user?.department || '';
       
-      const response = await fetch(`http://localhost:5000/api/ldip/${encodeURIComponent(dept)}`);
+      const response = await fetch(`https://municipal-budget-backend.onrender.com/api/ldip/${encodeURIComponent(dept)}`);
       if (response.ok) {
         const data = await response.json();
         setLdipEntries(data);
@@ -93,13 +93,13 @@ export default function LdipPage({ user }) {
         console.error("Server responded with an entry lookup failure code.");
       }
 
-      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(dept)}`);
+      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
       if (aipRes.ok) {
         const data = await aipRes.json();
         setAipEntries(Array.isArray(data) ? data.filter(x => x !== null) : []);
       }
 
-      const budgetRes = await fetch(`http://localhost:5000/api/budget/${encodeURIComponent(dept)}`);
+      const budgetRes = await fetch(`https://municipal-budget-backend.onrender.com/api/budget/${encodeURIComponent(dept)}`);
       if (budgetRes.ok) {
         const data = await budgetRes.json();
         setBudgetEntries(Array.isArray(data) ? data.filter(x => x !== null) : []);
@@ -169,7 +169,7 @@ export default function LdipPage({ user }) {
     if (!confirmation) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/ldip/delete', {
+      const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ export default function LdipPage({ user }) {
       };
 
       try {
-        const response = await fetch('http://localhost:5000/api/ldip/update', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -253,7 +253,7 @@ export default function LdipPage({ user }) {
       };
 
       try {
-        const response = await fetch('http://localhost:5000/api/ldip', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newEntry)
