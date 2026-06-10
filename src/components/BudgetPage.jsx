@@ -32,11 +32,11 @@ export default function BudgetPage({ user }) {
     try {
       const dept = user?.department || '';
       
-      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(dept)}`);
+      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
       const aipData = aipRes.ok ? await aipRes.json() : [];
       setAllAipItems(Array.isArray(aipData) ? aipData.filter(item => item !== null) : []);
 
-      const budgetRes = await fetch(`http://localhost:5000/api/budget/${encodeURIComponent(dept)}`);
+      const budgetRes = await fetch(`https://municipal-budget-backend.onrender.com/api/budget/${encodeURIComponent(dept)}`);
       const budgetData = budgetRes.ok ? await budgetRes.json() : [];
       setBudgetLedger(budgetData);
 
@@ -66,21 +66,24 @@ export default function BudgetPage({ user }) {
     setIsModalOpen(true);
   };
 
-  // EXTRACT SYSTEM MATRIX PATHS DIRECTLY FROM DATABASE STATE LOGS
-  const uniquePrograms = [...new Set(aipQueue.map(item => item.programTitle).filter(Boolean))];
+  // BULLETPROOF COMPILERS: Stringifies cell data before evaluation to prevent runtime object truncation crashes
+  const uniquePrograms = [...new Set(aipQueue.map(item => item?.programTitle).filter(Boolean))];
   
   const uniqueProjects = [...new Set(
     aipQueue
-      .filter(item => item && item.programTitle && progFilter && item.programTitle.trim().toLowerCase() === progFilter.trim().toLowerCase())
+      .filter(item => {
+        if (!item || !item.programTitle || !progFilter) return false;
+        return String(item.programTitle).trim().toLowerCase() === String(progFilter).trim().toLowerCase();
+      })
       .map(item => item.projectName)
       .filter(Boolean)
   )];
 
-  // NARROW DOWN DYNAMIC ACTIVITY ROWS MATCHING STEPS 1 AND 2 CHOICES
   const filteredAipActivities = aipQueue.filter(item => {
-    const matchesProg = item && item.programTitle && progFilter && item.programTitle.trim().toLowerCase() === progFilter.trim().toLowerCase();
-    const matchesProj = item && item.projectName && projFilter && item.projectName.trim().toLowerCase() === projFilter.trim().toLowerCase();
-    const textTarget = `${item.activityName} ${item.aipRefCode}`.toLowerCase();
+    if (!item) return false;
+    const matchesProg = !progFilter || (item.programTitle && String(item.programTitle).trim().toLowerCase() === String(progFilter).trim().toLowerCase());
+    const matchesProj = !projFilter || (item.projectName && String(item.projectName).trim().toLowerCase() === String(projFilter).trim().toLowerCase());
+    const textTarget = `${item.activityName || ''} ${item.aipRefCode || ''}`.toLowerCase();
     const matchesSearch = !searchQuery || textTarget.includes(searchQuery.toLowerCase());
     return matchesProg && matchesProj && matchesSearch;
   });
@@ -142,7 +145,7 @@ export default function BudgetPage({ user }) {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/budget', {
+      const response = await fetch('https://municipal-budget-backend.onrender.com/api/budget', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalSubmissionBody)
@@ -368,7 +371,7 @@ export default function BudgetPage({ user }) {
                 )}
 
                 {/* =======================================================
-                    STAGE WIZARD 3: CORE ACTIVITY SHOPPING TILE GRID (NEW SPECIFICATION)
+                    STAGE WIZARD 3: CORE ACTIVITY SHOPPING TILE GRID
                     ======================================================= */}
                 {wizardStep === 3 && (
                   <div style={{ animation: 'fadeIn 0.2s ease' }}>
