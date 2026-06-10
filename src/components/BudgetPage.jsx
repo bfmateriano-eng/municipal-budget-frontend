@@ -9,6 +9,10 @@ export default function BudgetPage({ user }) {
   // Selected Target Reference Tracking
   const [selectedAipRow, setSelectedAipRow] = useState(null);
 
+  // TRACKING MODES FOR OVERWRITING RECORDS
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingBudgetRow, setEditingBudgetRow] = useState(null);
+
   // SEARCH & PROGRESSIVE 4-STAGE WIZARD FLOW CONTROL STATES
   const [wizardStep, setWizardStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +36,7 @@ export default function BudgetPage({ user }) {
     try {
       const dept = user?.department || '';
       
+      // LOCALIZATION CONFIGURATION: Routed connections back to port 5000 local node
       const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
       const aipData = aipRes.ok ? await aipRes.json() : [];
       setAllAipItems(Array.isArray(aipData) ? aipData.filter(item => item !== null) : []);
@@ -56,6 +61,8 @@ export default function BudgetPage({ user }) {
       alert("No pending unbudgeted elements found in your office AIP stream.");
       return;
     }
+    setIsEditMode(false);
+    setEditingBudgetRow(null);
     setSelectedAipRow(null);
     setSearchQuery('');
     setProgFilter(''); setProjFilter('');
@@ -64,6 +71,47 @@ export default function BudgetPage({ user }) {
     setAnnualPs(''); setAnnualMooe(''); setAnnualCo('');
     setWizardStep(1); // Reset wizard flow back to step 1
     setIsModalOpen(true);
+  };
+
+  // INITIALIZES INPUT WIZARD WITH EXISTING EXPENDITURES DATA TO RUN AN EDIT SESSION
+  const handleOpenEditModal = (row) => {
+    const matchingAipItem = allAipItems.find(a => a.aipRefCode === row.aipRefCode);
+    if (!matchingAipItem) {
+      alert("Error: Corresponding AIP parent constraints row could not be found to validate ceilings.");
+      return;
+    }
+    setSelectedAipRow(matchingAipItem);
+    setIsEditMode(true);
+    setEditingBudgetRow(row);
+    setPerformanceIndicator(row.performanceIndicator || '');
+    setTargetBudgetYear(row.targetBudgetYear || '');
+    setAnnualPs(row.ps);
+    setAnnualMooe(row.mooe);
+    setAnnualCo(row.co);
+    setWizardStep(4); // Bypass structural selection steps straight to data assignment
+    setIsModalOpen(true);
+  };
+
+  // DISPATCHES TRUNCATE ROW SIGNALS TO CLEANLY CLEAR RECORDS LOCALLY
+  const handleDeleteBudgetEntry = async (row) => {
+    const confirmation = window.confirm(`Are you sure you want to permanently drop budget allocation item: "${row.aipRefCode}"?`);
+    if (!confirmation) return;
+
+    try {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/budget/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aipRefCode: row.aipRefCode })
+      });
+      if (res.ok) {
+        alert("Budget allocation deleted successfully and shifted up inside spreadsheet.");
+        loadBudgetMatrix();
+      } else {
+        alert("Failed to drop target budget ledger line.");
+      }
+    } catch (err) {
+      alert("Error reaching backend server during budget row deletion.");
+    }
   };
 
   // BULLETPROOF COMPILERS: Stringifies cell data before evaluation to prevent runtime object truncation crashes
@@ -124,7 +172,7 @@ export default function BudgetPage({ user }) {
       programTitle: selectedAipRow.programTitle,
       projectName: selectedAipRow.projectName,
       activityName: selectedAipRow.activityName,
-      implementingOffice: selectedAipRow.implementingOffice,
+      implementingOffice: selectedAipRow.implementingOffice || user.department,
       performanceIndicator: performanceIndicator,
       targetBudgetYear: targetBudgetYear,
       ps: parsedPs,
@@ -145,10 +193,13 @@ export default function BudgetPage({ user }) {
     };
 
     try {
-      const response = await fetch('https://municipal-budget-backend.onrender.com/api/budget', {
+      // OVERRIDE CONTROL RANGE: Shifts route automatically based on manual creation vs existing edit session override
+      const targetEndpoint = isEditMode ? 'https://municipal-budget-backend.onrender.com/api/budget/update' : 'https://municipal-budget-backend.onrender.com/api/budget';
+      
+      const response = await fetch(targetEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalSubmissionBody)
+        body: JSON.stringify(isEditMode ? { originalRefCode: editingBudgetRow.aipRefCode, updatedEntry: finalSubmissionBody } : finalSubmissionBody)
       });
 
       if (response.ok) {
@@ -156,70 +207,73 @@ export default function BudgetPage({ user }) {
         setIsModalOpen(false);
         setPendingPayload(null);
         loadBudgetMatrix(); 
-        alert(`Success! Allocation approved and saved into the Form No. 4 ledger with Procurement: "${choiceString}".`);
+        alert(isEditMode ? `Success! Budget allocation modifications approved and saved.` : `Success! Allocation approved and saved into the Form No. 4 ledger.`);
       }
     } catch (err) { alert("Failed to commit allocation data."); }
   };
 
   return (
-    <div className="main-content-stream" style={{ width: '100%' }}>
+    <div className="main-content-stream" style={{ width: '100vw', maxWidth: '100%', padding: '0 1rem', fontFamily: '"Inter", sans-serif', color: '#1e293b', boxSizing: 'border-box' }}>
       
       {/* MANDATED FORM CONTROL WORKSPACE HEADER SECTION */}
-      <div className="card" style={{ padding: '2rem', border: '1px solid #cbd5e1', background: '#ffffff', borderRadius: '8px', marginBottom: '1.5rem' }}>
+      <div style={{ padding: '1.5rem 2rem', border: '1px solid #cbd5e1', background: '#ffffff', borderRadius: '10px', width: '100%', boxSizing: 'border-box', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.01)' }}>
         <div style={{ textAlign: 'center', position: 'relative', borderBottom: '2px solid #0f172a', paddingBottom: '1.25rem', marginBottom: '1rem' }}>
           <span style={{ position: 'absolute', right: 0, top: 0, fontFamily: 'monospace', fontWeight: '700', fontSize: '0.85rem', color: '#475569', background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px' }}>
             Local Budget Form No. 4
           </span>
-          <h2 style={{ margin: '0 0 6px 0', fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>
+          <h2 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>
             PROGRAMMED APPROPRIATION AND OBLIGATION BY OBJECT OF EXPENDITURE
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '500', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: '600', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Municipality of Pililla, Rizal
           </p>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem', fontWeight: '600', fontSize: '0.95rem', color: '#334155' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.25rem', fontWeight: '700', fontSize: '0.92rem', color: '#334155' }}>
             <div>Office / Department: <span style={{ textDecoration: 'underline', color: '#1e3a8a', marginLeft: '4px' }}>{user?.department}</span></div>
             <div>Fund: <span style={{ textDecoration: 'underline', marginLeft: '4px' }}>General Fund</span></div>
           </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-          <button className="btn-primary" onClick={handleOpenImportModal}>+ Add PPA from AIP</button>
+          <button className="btn-primary" style={{ padding: '0.6rem 1.25rem', borderRadius: '6px', fontWeight: '600' }} onClick={handleOpenImportModal}>+ Add PPA from AIP</button>
         </div>
       </div>
 
-      {/* CORE FORM 4 LEDGER DATA TABLE DISPLAY WITH MANDATED REPORTING COLUMNS */}
-      <div className="card" style={{ overflowX: 'auto', padding: '1.5rem', border: '1px solid #cbd5e1' }}>
+      {/* STRETCHED CANVAS CONTAINER MATRIX - REMOVED SQUISHING SIDE MARGINS */}
+      <div style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1rem', boxSizing: 'border-box', overflowX: 'auto' }}>
         {budgetLedger.length === 0 ? (
           <p style={{ color: '#64748b', textAlign: 'center', padding: '3rem 0', fontStyle: 'italic' }}>No programmed appropriations recorded for this section track.</p>
         ) : (
-          <table className="budget-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table className="budget-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#f1f5f9', borderTop: '2px solid #0f172a' }}>
-                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '700', width: '140px' }}>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '800', width: '115px' }}>
                   AIP Reference Code
                 </th>
-                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '180px' }}>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700' }}>
                   Program / Project / Activity (PPA) Description
                 </th>
-                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '130px', backgroundColor: '#fdf2f8' }}>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', backgroundColor: '#fffdfa' }}>
                   Major Final Output (MFO)
                 </th>
-                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '140px', backgroundColor: '#fdf2f8' }}>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', backgroundColor: '#fffdfa' }}>
                   Performance Indicator / Output
                 </th>
-                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '130px', backgroundColor: '#fdf2f8' }}>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', backgroundColor: '#fffdfa' }}>
                   Target for the Budget Year
                 </th>
-                <th colSpan="4" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', fontWeight: '700', color: '#1e3a8a', backgroundColor: '#e0f2fe' }}>
+                <th colSpan="4" style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'center', fontWeight: '700', color: '#1e3a8a', backgroundColor: '#e0f2fe' }}>
                   Budget Year Allotment (Proposed)
+                </th>
+                <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '8px 6px', verticalAlign: 'middle', textAlign: 'center', fontWeight: '800', width: '110px' }}>
+                  Action Workspace
                 </th>
               </tr>
               <tr style={{ backgroundColor: '#f8fafc' }}>
-                <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: '600', width: '110px' }}>Personal Services (PS)</th>
-                <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: '600', width: '110px' }}>Maintenance (MOOE)</th>
-                <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: '600', width: '110px' }}>Capital Outlay (CO)</th>
-                <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: '700', color: '#15803d', width: '120px', backgroundColor: '#f0fdf4' }}>Total</th>
+                <th style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'right', fontWeight: '600', width: '85px' }}>PS</th>
+                <th style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'right', fontWeight: '600', width: '85px' }}>MOOE</th>
+                <th style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'right', fontWeight: '600', width: '85px' }}>CO</th>
+                <th style={{ border: '1px solid #cbd5e1', padding: '6px', textAlign: 'right', fontWeight: '700', color: '#166534', width: '95px', backgroundColor: '#f0fdf4' }}>Total</th>
               </tr>
             </thead>
             <tbody>
@@ -229,42 +283,48 @@ export default function BudgetPage({ user }) {
 
                 return (
                   <tr key={i} style={{ borderBottom: '1px solid #cbd5e1' }}>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', fontFamily: 'monospace', fontWeight: '700', fontSize: '0.8rem', color: '#0369a1', textAlign: 'center' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', fontFamily: 'monospace', fontWeight: '700', color: '#0369a1', textAlign: 'center', verticalAlign: 'middle' }}>
                       {row.aipRefCode}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', lineHeight: '1.4' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', lineHeight: '1.4', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>
                         Prog: {row.programTitle}
                       </span>
-                      <div style={{ fontWeight: '700', color: '#0f172a', marginTop: '2px' }}>
+                      <div style={{ fontWeight: '700', color: '#1e293b', marginTop: '1px', fontSize: '0.85rem' }}>
                         Proj: {row.projectName}
                       </div>
                       {hasSubActivity && (
-                        <div style={{ fontSize: '0.8rem', color: '#475569', paddingLeft: '6px', borderLeft: '2px solid #3b82f6', marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#475569', paddingLeft: '6px', borderLeft: '2px solid #3b82f6', marginTop: '2px', fontWeight: '500' }}>
                           Act: {row.activityName}
                         </div>
                       )}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', color: '#334155', fontWeight: '500', backgroundColor: '#fffdfa' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', color: '#334155', fontWeight: '600', backgroundColor: '#fffdfa', verticalAlign: 'middle' }}>
                       {matchingAip?.expectedOutput || '—'}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', color: '#334155', fontStyle: 'italic', backgroundColor: '#fffdfa' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', color: '#334155', fontStyle: 'italic', fontWeight: '500', backgroundColor: '#fffdfa', verticalAlign: 'middle' }}>
                       {row.performanceIndicator || '—'}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', color: '#0f172a', fontWeight: '600', backgroundColor: '#fffdfa' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', color: '#0f172a', fontWeight: '700', backgroundColor: '#fffdfa', verticalAlign: 'middle' }}>
                       {row.targetBudgetYear || '—'}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace', verticalAlign: 'middle' }}>
                       ₱{row.ps.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace', verticalAlign: 'middle' }}>
                       ₱{row.mooe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace', verticalAlign: 'middle' }}>
                       ₱{row.co.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'right', fontWeight: '700', color: '#166534', fontFamily: 'monospace', fontSize: '0.9rem', backgroundColor: '#f0fdf4' }}>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'right', fontWeight: '700', color: '#166534', fontFamily: 'monospace', fontSize: '0.85rem', backgroundColor: '#f0fdf4', verticalAlign: 'middle' }}>
                       ₱{row.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'inline-flex', gap: '4px' }}>
+                        <button className="btn-secondary" style={{ padding: '3px 6px', fontSize: '0.75rem', fontWeight: '700', border: 'none', borderRadius: '4px' }} onClick={() => handleOpenEditModal(row)}>Edit</button>
+                        <button className="btn-danger" style={{ padding: '3px 6px', fontSize: '0.75rem', fontWeight: '700', border: 'none', borderRadius: '4px' }} onClick={() => handleDeleteBudgetEntry(row)}>Del</button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -288,17 +348,19 @@ export default function BudgetPage({ user }) {
             </button>
 
             <div className="modal-header-section" style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-              <h2 style={{ margin: 0 }}>Programmed Allocation Allocation Wizard</h2>
-              <p className="label-helper" style={{ margin: '4px 0 0 0' }}>Guided sequential checkout flow mapping unallocated AIP records to LBF No. 4.</p>
+              <h2 style={{ margin: 0 }}>{isEditMode ? 'Modify Budget Allocation Details' : 'Programmed Allocation Allocation Wizard'}</h2>
+              <p className="label-helper" style={{ margin: '4px 0 0 0' }}>{isEditMode ? `Updating data cells matrix parameters for record [${editingBudgetRow?.aipRefCode}]` : 'Guided sequential checkout flow mapping unallocated AIP records to LBF No. 4.'}</p>
             </div>
 
             {/* PROGRESS CHECKOUT TRACKING BAR GRID HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.75rem 0', background: '#f8fafc', padding: '0.6rem 1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 1 ? '#0284c7' : '#94a3b8' }}>🎯 Step 1: Program</span>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 2 ? '#0284c7' : '#94a3b8' }}>📁 Step 2: Project</span>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 3 ? '#0284c7' : '#94a3b8' }}>🌿 Step 3: Activity</span>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 4 ? '#0284c7' : '#94a3b8' }}>₱ Step 4: Allotments</span>
-            </div>
+            {!isEditMode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.75rem 0', background: '#f8fafc', padding: '0.6rem 1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 1 ? '#0284c7' : '#94a3b8' }}>🎯 Step 1: Program</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 2 ? '#0284c7' : '#94a3b8' }}>📁 Step 2: Project</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 3 ? '#0284c7' : '#94a3b8' }}>🌿 Step 3: Activity</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 4 ? '#0284c7' : '#94a3b8' }}>₱ Step 4: Allotments</span>
+              </div>
+            )}
             
             <div style={{ overflowY: 'auto', paddingRight: '4px', flex: 1 }}>
               <form onSubmit={handleFormSubmit}>
@@ -306,7 +368,7 @@ export default function BudgetPage({ user }) {
                 {/* =======================================================
                     STAGE WIZARD 1: MASTER PROGRAM SHOPPING TILE GRID
                     ======================================================= */}
-                {wizardStep === 1 && (
+                {wizardStep === 1 && !isEditMode && (
                   <div style={{ animation: 'fadeIn 0.2s ease' }}>
                     <label style={{ fontWeight: '700', display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#334155' }}>Select Parent Program Template Basket:</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -338,7 +400,7 @@ export default function BudgetPage({ user }) {
                 {/* =======================================================
                     STAGE WIZARD 2: SUB-PROJECT SHOPPING TILE GRID 
                     ======================================================= */}
-                {wizardStep === 2 && (
+                {wizardStep === 2 && !isEditMode && (
                   <div style={{ animation: 'fadeIn 0.2s ease' }}>
                     <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#334155' }}>Select Component Project Target:</label>
                     <div className="label-helper" style={{ marginBottom: '12px' }}>Parent Filter Anchor: <strong>{progFilter}</strong></div>
@@ -373,7 +435,7 @@ export default function BudgetPage({ user }) {
                 {/* =======================================================
                     STAGE WIZARD 3: CORE ACTIVITY SHOPPING TILE GRID
                     ======================================================= */}
-                {wizardStep === 3 && (
+                {wizardStep === 3 && !isEditMode && (
                   <div style={{ animation: 'fadeIn 0.2s ease' }}>
                     <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#334155' }}>Select Granular Activity Node Card:</label>
                     <div className="label-helper" style={{ marginBottom: '12px' }}>Project Context: <strong style={{ color: '#0284c7' }}>{projFilter}</strong></div>
@@ -466,8 +528,12 @@ export default function BudgetPage({ user }) {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                      <button type="button" className="btn-secondary" onClick={() => setWizardStep(3)}>⬅ Back to Step 3</button>
-                      <button type="submit" className="btn-primary">Verify & Log Allotment</button>
+                      {isEditMode ? (
+                        <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                      ) : (
+                        <button type="button" className="btn-secondary" onClick={() => setWizardStep(3)}>⬅ Back to Step 3</button>
+                      )}
+                      <button type="submit" className="btn-primary">{isEditMode ? 'Verify & Update Allotment' : 'Verify & Log Allotment'}</button>
                     </div>
                   </div>
                 )}

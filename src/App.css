@@ -1,24 +1,29 @@
 /* --- Global Resets & Typography --- */
 #root {
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 1rem 1.5rem !important; /* Slimmed down outer margins to unlock space */
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #1e293b;
   background-color: #f8fafc;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background-color: #f8fafc;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 h1 {
-  font-size: 2.25rem;
+  font-size: 2rem; /* Clean institutional scale */
   color: #1e3a8a; /* Deep Institutional Trust Blue */
-  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.35rem;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
@@ -29,195 +34,108 @@ h2, h3 {
   font-weight: 600;
 }
 
-h2 { font-size: 1.5rem; margin-bottom: 1.25rem; letter-spacing: -0.3px; }
+h2 { font-size: 1.45rem; margin-bottom: 1.25rem; letter-spacing: -0.3px; }
 h3 { font-size: 1.15rem; margin-bottom: 0.75rem; }
 
 /* --- Card Structure --- */
 .card {
   background: #ffffff;
-  padding: 2.25rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02);
+  padding: 1.25rem 1.5rem; /* Compressed padding to expand active layout matrix fields */
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.02);
   border: 1px solid #e2e8f0;
   box-sizing: border-box;
+  width: 100% !important;
 }
 
 /* --- Form Layouts (Auth View) --- */
 .auth-container {
-  max-width: 500px;
-  margin: 5rem auto 0 auto;
+  max-width: 450px;
+  margin: 4rem auto 0 auto;
 }
 
-.auth-container form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-/* Elegant Label Structure with Context Helpers */
 .form-field-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
-label {
+.form-field-group label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: #334155; /* Dark Slate text */
+  color: #475569;
   margin-bottom: 0.35rem;
 }
 
-.label-helper {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: #64748b;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
-}
-
-input[type="email"],
-input[type="password"],
-input[type="text"],
-input[type="tel"],
-input[type="number"],
-textarea,
-select {
-  width: 100% !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 0.95rem;
-  color: #0f172a;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-family: inherit;
-  transition: all 0.2s ease-in-out;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 90px;
-  line-height: 1.5;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-  background-color: #fff;
-}
-
-/* --- Elegant Accounting Currency Input Wrapper --- */
-.currency-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
+.form-field-group input, 
+.form-field-group select, 
+.form-field-group textarea {
   width: 100%;
-}
-
-.currency-wrapper input {
-  padding-left: 2.25rem !important;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-
-.currency-symbol {
-  position: absolute;
-  left: 1rem;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 1rem;
-  pointer-events: none;
-}
-
-/* --- Premium Interactive Target Year Select Cards --- */
-.year-selector-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-.year-selection-card {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.85rem 0.5rem;
-  text-align: center;
-  cursor: pointer;
-  background: #ffffff;
-  transition: all 0.2s ease-in-out;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  user-select: none;
-}
-
-.year-selection-card:hover {
-  border-color: #94a3b8;
-  background-color: #f8fafc;
-}
-
-.year-selection-card input[type="checkbox"] {
-  display: none; /* Hide ugly native browser square entirely! */
-}
-
-.year-selection-card .card-year-title {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #334155;
-}
-
-.year-selection-card .card-year-sub {
-  font-size: 0.7rem;
-  color: #64748b;
-  text-transform: uppercase;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-
-/* Active State Switcher Styles */
-.year-selection-card.active-selected {
-  border-color: #2563eb;
-  background-color: #f0f6ff;
-  box-shadow: 0 0 0 1px #2563eb;
-}
-
-.year-selection-card.active-selected .card-year-title {
-  color: #1d4ed8;
-}
-.year-selection-card.active-selected .card-year-sub {
-  color: #2563eb;
-}
-
-/* --- Buttons System --- */
-button {
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
+  padding: 0.55rem 0.75rem;
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
 }
 
-button[type="submit"], .btn-primary {
+.form-field-group input:focus, 
+.form-field-group select:focus, 
+.form-field-group textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.06);
+}
+
+.form-field-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.label-helper {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+/* --- Interactive Elements & Buttons --- */
+button, .btn-primary, .btn-secondary, .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary {
   background-color: #2563eb;
   color: #ffffff;
 }
 
-button[type="submit"]:hover, .btn-primary:hover {
+.btn-primary:hover {
   background-color: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  background-color: #94a3b8;
+  color: #cbd5e1;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
   background-color: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 
 .btn-secondary:hover {
@@ -240,20 +158,23 @@ button:active {
 
 /* --- Navigation Bar --- */
 .navbar-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  display: inline-flex; /* Turned into inline block flex row */
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 1.25rem; /* Compressed vertical headroom spacing */
   border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0px;
+  width: 100%;
 }
 
 .nav-tab {
   background: none;
   border: none;
   box-shadow: none;
-  padding: 0.75rem 1.25rem;
+  padding: 0.45rem 1rem; /* Compressed inner padding cells from 0.75rem to 0.45rem */
   color: #64748b;
   font-weight: 600;
+  font-size: 0.88rem; /* Slightly slimer fonts */
   border-radius: 6px 6px 0 0;
   transition: all 0.2s ease;
 }
@@ -274,9 +195,9 @@ button:active {
 .admin-season-box {
   background-color: #fffbeb;
   border: 1px solid #fde68a;
-  padding: 1.25rem 1.75rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: 0.85rem 1.25rem; /* Compressed spacing */
+  border-radius: 6px;
+  margin-bottom: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -290,7 +211,7 @@ button:active {
   width: 100%;
   height: 100%;
   background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px); /* Modern soft premium focus blur */
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -306,13 +227,10 @@ button:active {
   padding: 2.25rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   animation: modalSlideUp 0.2s ease-out;
-  
-  /* Fixed Screen Constraints & Scroll Engine */
   max-height: 85vh;
   overflow-y: auto;
 }
 
-/* Minimalist webkit styling rules for the modal inner viewport scroll track */
 .modal-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -344,21 +262,21 @@ button:active {
 }
 
 .stat-card {
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background-color: #f8fafc;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
   margin-top: 0.25rem;
 }
@@ -372,17 +290,17 @@ button:active {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.95rem;
+  font-size: 0.95rem; /* Up-scaled for premium readability */
 }
 
 .budget-table th, .budget-table td {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem; /* Balanced spacious row layout */
   border-bottom: 1px solid #e2e8f0;
 }
 
 .budget-table th {
   background-color: #f1f5f9;
-  font-weight: 600;
+  font-weight: 700;
   color: #475569;
 }
 
@@ -474,3 +392,95 @@ button:active {
 .badge-general { background-color: #e0f2fe; color: #0369a1; }
 .badge-social { background-color: #fce7f3; color: #be185d; }
 .badge-economic { background-color: #dcfce7; color: #15803d; }
+
+/* ==========================================
+   MUNICIPAL ARCHITECTURAL PRINT LAYOUT ENGINE
+   ========================================== */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    font-size: 12px !important;
+    color: #000000 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Automatically hide interactive UI panels, workspace selectors, and data action buttons */
+  .navbar-tabs, .sidebar, button, .btn-primary, .btn-secondary, .btn-danger,
+  td:last-child, th:last-child, .dashboard-header {
+    display: none !important;
+  }
+
+  #root, .dashboard-wrapper, .main-content-stream {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Inject Centered Institutional Statutory Header Text with Side Watermark Logos */
+  .main-content-stream::before {
+    display: block !important;
+    white-space: pre-wrap !important;
+    text-align: center !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    margin-bottom: 1.5rem !important;
+    padding-top: 15px !important;
+    
+    /* Center the structural context data string content explicitly */
+    content: "Republic of the Philippines\A Province of Rizal\A MUNICIPALITY OF PILILLA\A\A CY 2027 ANNUAL INVESTMENT PROGRAM\A DETAILS OF PROGRAM/PROJECT/ACTIVITY BY SECTOR\A Budget Year 2027\A\A SECTOR: ___________________________" !important;
+    font-size: 13px !important;
+    
+    /* Multi-background logo binding system */
+    background-image: url('/lgu-logo.png'), url('/better-pililla.png') !important;
+    background-position: left 20px top 0px, right 20px top 0px !important;
+    background-repeat: no-repeat !important;
+    background-size: 80px !important;
+    min-height: 110px !important;
+  }
+
+  /* Left-align the Sector metadata line explicitly using an overlay target check rule */
+  .main-content-stream {
+    text-align: left !important;
+  }
+
+  /* Stabilize data metrics borders inside printed hardcopy nodes */
+  .budget-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 10px !important;
+  }
+
+  .budget-table th, .budget-table td {
+    border: 1px solid #475569 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  .budget-table th {
+    background-color: #f1f5f9 !important;
+    font-weight: 700 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent page truncation splits on text rows */
+  tr {
+    page-break-inside: avoid !important;
+  }
+}

@@ -100,8 +100,8 @@ export default function LdipPage({ user }) {
 
   // Form Field Tracking States
   const [programTitle, setProgramTitle] = useState('');
-  const [projectName, setProjectName] = useState(''); // NEW Wizard State
-  const [activityName, setActivityName] = useState(''); // NEW Wizard State
+  const [projectName, setProjectName] = useState(''); 
+  const [activityName, setActivityName] = useState(''); 
   const [programDescription, setProgramDescription] = useState('');
   const [targetY1, setTargetY1] = useState(false);
   const [targetY2, setTargetY2] = useState(false);
@@ -185,7 +185,7 @@ export default function LdipPage({ user }) {
     setTargetY2(false);
     setTargetY3(false);
     setRequiredBudget('');
-    setWizardStep(1); // Reset Wizard
+    setWizardStep(1); 
     setIsNewProgram(false);
     setIsNewProject(false);
     setIsNewActivity(false);
@@ -204,7 +204,7 @@ export default function LdipPage({ user }) {
     setTargetY2(entry.targets.includes(year2.toString()));
     setTargetY3(entry.targets.includes(year3.toString()));
     setRequiredBudget(entry.budget);
-    setWizardStep(3); // Jump edit straight to Final stage layout
+    setWizardStep(3); 
     setIsModalOpen(true);
   };
 
@@ -753,7 +753,6 @@ export default function LdipPage({ user }) {
               </p>
             </div>
 
-            {/* CHECKOUT WIZARD PROGRESS TRACKING HEADER ALLOTMENT */}
             <div style={{ display: 'flex', justifyContent: 'space-between', margin: '1.25rem 0', background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: '700', color: wizardStep === 1 ? '#1e3a8a' : '#94a3b8' }}>🎯 Step 1: Program</span>
               <span style={{ fontSize: '0.85rem', fontWeight: '700', color: wizardStep === 2 ? '#1e3a8a' : '#94a3b8' }}>📁 Step 2: Project</span>
@@ -762,9 +761,6 @@ export default function LdipPage({ user }) {
             
             <form onSubmit={handleFormSubmit}>
               
-              {/* ==========================================
-                  WIZARD STEP 1: OVERSIZED PROGRAM TILE SELECTION
-                  ========================================== */}
               {wizardStep === 1 && (
                 <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
                   <label style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>Select Parent Program Container</label>
@@ -815,9 +811,6 @@ export default function LdipPage({ user }) {
                 </div>
               )}
 
-              {/* ==========================================
-                  WIZARD STEP 2: OVERSIZED PROJECT TILE SELECTION
-                  ========================================== */}
               {wizardStep === 2 && (
                 <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
                   <label style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>Select Component Project Segment</label>
@@ -869,9 +862,6 @@ export default function LdipPage({ user }) {
                 </div>
               )}
 
-              {/* ==========================================
-                  WIZARD STEP 3: ACTIVITY DETAILS, SCOPE & ALLOTMENT
-                  ========================================== */}
               {wizardStep === 3 && (
                 <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
                   

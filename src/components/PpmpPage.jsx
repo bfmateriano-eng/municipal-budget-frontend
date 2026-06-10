@@ -38,13 +38,28 @@ export default function PpmpPage({ user }) {
 
       const ppmpRes = await fetch(`https://municipal-budget-backend.onrender.com/api/ppmp/${encodeURIComponent(dept)}`);
       const ppmpData = ppmpRes.ok ? await ppmpRes.json() : [];
-      setPpmpLedger(ppmpData);
+      
+      // ALIGNED PROPERTIES ACCORDING TO YOUR 12-COLUMN ARRANGEMENT RULES
+      const cleanNormalizedPpmp = (Array.isArray(ppmpData) ? ppmpData : []).map(item => ({
+        aipRefCode: item.aipRefCode || 'Uncoded',
+        office: item.office || dept,
+        generalDescription: item.generalDescription || 'No Description Available',
+        typeOfProject: item.typeOfProject || 'Goods',
+        preProcurementConference: item.preProcurementConference || 'No',
+        startProcurementMonth: item.startProcurementMonth || '—',
+        endProcurementMonth: item.endProcurementMonth || '—',
+        expectedDeliveryMonth: item.expectedDeliveryMonth || '—',
+        sourceOfFunds: item.sourceOfFunds || 'General Fund',
+        estimatedBudget: parseFloat(item.estimatedBudget) || 0,
+        items: Array.isArray(item.items) ? item.items : []
+      }));
+
+      setPpmpLedger(cleanNormalizedPpmp);
     } catch (err) { console.error(err); }
   };
 
   useEffect(() => { loadProcurementStreamMatrix(); }, [user?.department]);
 
-  // AUTOMATED MASS IMPORT TRIGGER: Syncs ALL qualifying unprocured Form 4 allocations instantly as row shells
   const handleBatchImportAllShells = async () => {
     const qualifyingBudgetItems = fullBudgetList.filter(b => 
       b && 
@@ -69,11 +84,11 @@ export default function PpmpPage({ user }) {
         generalDescription: descriptionText,
         typeOfProject: 'Goods',
         preProcurementConference: 'No',
-        startProcurementMonth: '—', // Placeholder marking layout state as unconfigured shell
+        startProcurementMonth: '—', 
         endProcurementMonth: '—',
         expectedDeliveryMonth: '—',
         sourceOfFunds: resolvedSourceOfFunds,
-        estimatedBudget: b.total, // Seeds default allocation cap limit
+        estimatedBudget: b.total, 
         items: []
       };
     });
@@ -100,7 +115,6 @@ export default function PpmpPage({ user }) {
     setExpectedDeliveryMonth(row.expectedDeliveryMonth === '—' ? 'December' : row.expectedDeliveryMonth);
     setEstimatedBudget(row.estimatedBudget);
     
-    // Seed items tracking with unique identifiers or format list cleanly
     if (Array.isArray(row.items) && row.items.length > 0) {
       setItemsList(row.items.map(x => ({ ...x, id: Math.random() })));
     } else {
@@ -126,11 +140,32 @@ export default function PpmpPage({ user }) {
     setItemsList(itemsList.filter(item => item.id !== id));
   };
 
+  const handleDeletePpmpEntry = async (row) => {
+    const confirmation = window.confirm(`Are you sure you want to permanently delete the procurement plan record for: "${row.aipRefCode}"?`);
+    if (!confirmation) return;
+
+    try {
+      const res = await fetch('https://municipal-budget-backend.onrender.com/api/ppmp/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: row.aipRefCode })
+      });
+
+      if (res.ok) {
+        alert("Procurement project plan entry successfully dropped and shifted upward inside sheet rows.");
+        loadProcurementStreamMatrix();
+      } else {
+        alert("Server validation failed to drop target PPMP row ledger line.");
+      }
+    } catch (err) {
+      alert("Failed to communicate with local backend service during the deletion workflow loop.");
+    }
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!activeEditingRow) return;
 
-    // Find the original Form 4 allocation limit ceiling block to prevent unauthorized updates
     const originalBudgetLine = fullBudgetList.find(b => b.aipRefCode === activeEditingRow.aipRefCode);
     const maximumCapAllowed = originalBudgetLine ? originalBudgetLine.total : activeEditingRow.estimatedBudget;
 
@@ -161,7 +196,7 @@ export default function PpmpPage({ user }) {
       const response = await fetch('https://municipal-budget-backend.onrender.com/api/ppmp/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aipRefCode: activeEditingRow.aipRefCode, updatedPlan: updatedPlanBody })
+        body: JSON.stringify({ originalCode: activeEditingRow.aipRefCode, updatedRow: updatedPlanBody })
       });
       if (response.ok) {
         setIsModalOpen(false);
@@ -172,38 +207,39 @@ export default function PpmpPage({ user }) {
   };
 
   return (
-    <div className="main-content-stream" style={{ width: '100%' }}>
+    <div className="main-content-stream" style={{ width: '100vw', maxWidth: '100%', padding: '0 1rem', fontFamily: '"Inter", sans-serif', color: '#1e293b', boxSizing: 'border-box' }}>
       
-      {/* HEADER OPERATIONS BAR CONTROL INTERACTION PANEL */}
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', boxSizing: 'border-box', width: '100%', marginBottom: '1.5rem' }}>
         <div>
-          <h2>Project Procurement Management Plan (PPMP) Workspace</h2>
-          <p style={{ margin: 0, color: '#64748b' }}>Consolidating tactical object item breakdowns, procurement tracking schedules, and inventory measures.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>Project Procurement Management Plan (PPMP) Workspace</h2>
+          <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem', fontWeight: '500' }}>Consolidating tactical object item breakdowns, procurement tracking schedules, and inventory measures.</p>
         </div>
-        <button className="btn-primary" onClick={handleBatchImportAllShells} style={{ backgroundColor: '#2563eb' }}>
+        <button className="btn-primary" onClick={handleBatchImportAllShells} style={{ backgroundColor: '#2563eb', padding: '0.65rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', borderRadius: '6px' }}>
           ⚡ Import ALL PPAs with Procurement
         </button>
       </div>
 
-      {/* CORE PROCUREMENT MASTER LIST DISPLAY CONTAINER VIEW GRID */}
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Finalized Procurement Master Registry</h3>
+      <div style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1.5rem', boxSizing: 'border-box', overflowX: 'auto' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#1e293b', fontSize: '1.1rem', fontWeight: '800' }}>Finalized Procurement Master Registry</h3>
         {ppmpLedger.length === 0 ? (
           <p style={{ color: '#64748b', textAlign: 'center', padding: '2.5rem 0', fontStyle: 'italic' }}>No active project procurement rows found. Tap the button above to import your Annual Budget items instantly.</p>
         ) : (
-          <table className="budget-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table className="budget-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>AIP Ref Code</th>
-                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700' }}>Procurement Target Description / Title</th>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>Classification Type</th>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>Pre-Procure Conf</th>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>Procurement Activity Window</th>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>Delivery Timeline</th>
-                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700' }}>Source of Funds</th>
-                <th style={{ padding: '10px', textAlign: 'right', fontWeight: '700' }}>Estimated Budget</th>
-                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', width: '200px' }}>Item Breakdown Matrix</th>
-                <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700' }}>Actions</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '120px' }}>AIP Reference Code</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700' }}>Office</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700' }}>General Description</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '130px' }}>Type of Project</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '110px' }}>Pre-Procurement</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '110px' }}>Start Month</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '110px' }}>End Month</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '120px' }}>Expected Delivery</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', width: '130px' }}>Source of Funds</th>
+                <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', width: '130px' }}>Estimated Budget</th>
+                <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', width: '220px' }}>Itemized Breakdown</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '150px' }}>Timestamp</th>
+                <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: '700', width: '150px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -211,50 +247,69 @@ export default function PpmpPage({ user }) {
                 const isShell = row.startProcurementMonth === '—';
                 return (
                   <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: isShell ? '#fefce8' : 'transparent' }}>
-                    <td style={{ padding: '10px', fontFamily: 'monospace', fontWeight: '700', color: isShell ? '#94a3b8' : '#0369a1', textAlign: 'center' }}>
+                    <td style={{ padding: '10px 8px', fontFamily: 'monospace', fontWeight: '700', color: isShell ? '#94a3b8' : '#0369a1', textAlign: 'center', verticalAlign: 'middle' }}>
                       {row.aipRefCode}
                     </td>
-                    <td style={{ padding: '10px', fontWeight: '600', color: '#1e293b' }}>
+                    <td style={{ padding: '10px', fontWeight: '600', color: '#475569', verticalAlign: 'middle' }}>
+                      {row.office}
+                    </td>
+                    <td style={{ padding: '10px', fontWeight: '600', color: '#1e293b', verticalAlign: 'middle', lineHeight: '1.4' }}>
                       {row.generalDescription}
-                      {isShell && <span style={{ display: 'block', fontSize: '0.75rem', color: '#b45309', fontWeight: '700', marginTop: '2px' }}>⚠️ Awaiting Specification Log</span>}
+                      {isShell && <span style={{ display: 'block', fontSize: '0.75rem', color: '#b45309', fontWeight: '700', marginTop: '2px' }}>Awaiting Specification Log</span>}
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '500' }}>{row.typeOfProject}</span>
+                    <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '600', color: '#475569' }}>{row.typeOfProject}</span>
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center', color: row.preProcurementConference === 'Yes' ? '#b45309' : '#64748b', fontWeight: '700' }}>
+                    <td style={{ padding: '10px 8px', textAlign: 'center', color: row.preProcurementConference === 'Yes' ? '#b45309' : '#64748b', fontWeight: '700', verticalAlign: 'middle' }}>
                       {row.preProcurementConference}
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '0.8rem', color: isShell ? '#cbd5e1' : '#0f172a' }}>
-                      {isShell ? '—' : `📅 ${row.startProcurementMonth} ➔ ${row.endProcurementMonth}`}
+                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: '0.8rem', color: isShell ? '#cbd5e1' : '#0f172a', fontWeight: '600', verticalAlign: 'middle' }}>
+                      {row.startProcurementMonth}
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: isShell ? '#cbd5e1' : '#166534' }}>
-                      {isShell ? '—' : `⚡ ${row.expectedDeliveryMonth}`}
+                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: '0.8rem', color: isShell ? '#cbd5e1' : '#0f172a', fontWeight: '600', verticalAlign: 'middle' }}>
+                      {row.endProcurementMonth}
                     </td>
-                    <td style={{ padding: '10px', color: '#475569', fontSize: '0.8rem' }}>{row.sourceOfFunds}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700', fontFamily: 'monospace', color: '#0f172a' }}>
-                      ₱{row.estimatedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: '700', color: isShell ? '#cbd5e1' : '#166534', verticalAlign: 'middle' }}>
+                      {row.expectedDeliveryMonth}
                     </td>
-                    <td style={{ padding: '10px' }}>
+                    <td style={{ padding: '10px', color: '#475569', fontSize: '0.8rem', fontWeight: '500', verticalAlign: 'middle' }}>{row.sourceOfFunds}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700', fontFamily: 'monospace', color: '#0f172a', verticalAlign: 'middle' }}>
+                      ₱{(row?.estimatedBudget || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ padding: '10px', verticalAlign: 'middle' }}>
                       {Array.isArray(row.items) && row.items.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                           {row.items.map((it, idx) => (
                             <div key={idx} style={{ fontSize: '0.72rem', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 4px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: '#334155' }}>📦 {it.description}</span>
-                              <span style={{ color: '#64748b', fontWeight: '600' }}>{it.quantity}({it.unitOfMeasurement?.charAt(0)})</span>
+                              <span style={{ color: '#334155', fontWeight: '500' }}>📦 {it.description}</span>
+                              <span style={{ color: '#64748b', fontWeight: '700' }}>{it.quantity}({it.unitOfMeasurement?.charAt(0)})</span>
                             </div>
                           ))}
                         </div>
                       ) : <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>No item lists logged</span>}
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                      <button 
-                        type="button" 
-                        className="btn-secondary" 
-                        style={{ padding: '4px 10px', fontSize: '0.8rem', backgroundColor: isShell ? '#d97706' : '#e2e8f0', color: isShell ? '#ffffff' : '#475569', border: 'none' }}
-                        onClick={() => handleOpenConfiguringModal(row)}
-                      >
-                        {isShell ? '⚙️ Configure' : 'Edit Plan'}
-                      </button>
+                    <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.75rem', color: '#64748b' }}>
+                      {row.timestamp || '—'}
+                    </td>
+                    <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'inline-flex', gap: '4px' }}>
+                        <button 
+                          type="button" 
+                          className="btn-secondary" 
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '700', backgroundColor: isShell ? '#d97706' : '#475569', color: '#ffffff', border: 'none', borderRadius: '4px' }}
+                          onClick={() => handleOpenConfiguringModal(row)}
+                        >
+                          {isShell ? 'Configure' : 'Edit'}
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn-danger"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: '700', borderRadius: '4px', border: 'none' }}
+                          onClick={() => handleDeletePpmpEntry(row)}
+                        >
+                          Del
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -337,7 +392,6 @@ export default function PpmpPage({ user }) {
                   />
                 </div>
 
-                {/* ITEM BREAKDOWN TRACKING ON A PER-ITEM BASIS */}
                 <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '1rem', marginTop: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <span style={{ color: '#0369a1', fontWeight: '700', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
@@ -361,7 +415,7 @@ export default function PpmpPage({ user }) {
                               type="text" 
                               value={it.description} 
                               onChange={(e) => handleUpdateItemField(it.id, 'description', e.target.value)} 
-                              placeholder="Product Item description (e.g., Black Ballpoint Pens, A4 Reams)" 
+                              placeholder="Product Item description" 
                               required 
                             />
                           </div>
