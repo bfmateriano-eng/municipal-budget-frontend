@@ -1,51 +1,79 @@
 import { useState, useEffect, Fragment } from 'react';
+import * as XLSX from 'xlsx'; // NEW: Excel Parser Utility Package
 
+// GLOBAL SOURCE OF TRUTH: RECONFIGURED VIA THE OFFICIAL MUNICIPAL OFFICE DIRECTORY REGISTRY
 const SECTOR_MAPPING = {
-  "Office of the Municipal Mayor": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Vice Mayor": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Sangguniang Bayan Members": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Secretary to the Sangguniang Bayan": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Treasurer (MTO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Assessor": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Accountant": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Budget Officer": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Planning and Development Coordinator (MPDO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Health Officer (MHO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Civil Registrar": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Administrator": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Legal Officer": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Information Officer": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Command Center": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Community Affairs": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Cooperative Development Officer": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the General Services Officer (GSO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Human Resource and Management Officer (HRMO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Office of the Municipal Risk Reduction Management Officer (MDRRMO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Bureau of Fire Protection (BFP)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Civil Society Organization (CSO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Commission on Election (COMELEC)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Department of the Interior and Local Government (DILG)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Municipal Trial Court (MTC)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Philippine National Police (PNP)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
-  "Post Office (PO)": { name: "GENERAL PUBLIC SERVICES", code: "1000" },
+  "Office of the Municipal Mayor": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-01" },
+  "Office of the Municipal Vice Mayor": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-02" },
+  "Office of the Sangguniang Bayan Members": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-03" },
+  "Office of the Secretary to the Sangguniang Bayan": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-04" },
+  "Office of the Municipal Treasurer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-05" },
+  "Office of the Municipal Treasurer (MTO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-05" },
+  "Office of the Municipal Assessor": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-06" },
+  "Office of the Municipal Accountant": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-07" },
+  "Office of the Municipal Budget Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-08" },
+  "Office of the Municipal Planning and Development Coordinator": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-09" },
+  "Office of the Municipal Planning and Development Coordinator (MPDO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-09" },
+  "Office of the Municipal Engineer/Building Official": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-10" },
+  "Office of the Municipal Health Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-11" },
+  "Office of the Municipal Health Officer (MHO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-11" },
+  "Office of the Municipal Civil Registrar": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-1-12" },
+  "Office of the Municipal Administrator": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-2-01" },
+  "Office of the Municipal Legal Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-2-02" },
+  "Office of the Municipal Information Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-2-06" },
+  "Office of the Command Center": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-02" },
+  "Office of the Community Affairs": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-03" },
+  "Office of the Cooperative Development Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-04" },
+  "Office of the Culture and the Arts": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-05" },
+  "Office of the General Services Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-07" },
+  "Office of the General Services Officer (GSO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-07" },
+  "Office of the Human Resource and Management Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-08" },
+  "Office of the Human Resource and Management Officer (HRMO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-08" },
+  "Office of the Municipal Risk Reduction Management Officer": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-12" },
+  "Office of the Municipal Risk Reduction Management Officer (MDRRMO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-12" },
+  "Bureau of Fire Protection (BFP)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-17" },
+  "Civil Society Organization (CSO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-18" },
+  "Commission on Election (COMELEC)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-19" },
+  "Department of the Interior and Local Government (DILG)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-22" },
+  "Municipal Trial Court (MTC)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-23" },
+  "Philippine National Police (PNP)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-24" },
+  "Post Office (PO)": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-25" },
+  "Sports and Recreation": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-21" },
+  "PROVISION FOR OTHER GEN. PUBLIC SERVICES": { sectorName: "General Services Sector", sectorCode: "1000", officeCode: "1000-000-3-3-24" },
 
-  "Department of Education (DepEd)": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Culture and the Arts": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Gender And Development (GAD)": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Local Youth Development Officer (LYDO)": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Municipal Anti-Drug Abuse Council (MADAC)": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Municipal Social Welfare and Development Officer (MSWDO)": { name: "SOCIAL SERVICES", code: "8000" },
-  "Office of the Persons with Disability Affairs Officer (PDAO)": { name: "SOCIAL SERVICES", code: "8000" },
+  // === SOCIAL SERVICES SECTOR (3000) ===
+  "Office of the Municipal Social Welfare and Development Officer": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-2-05" },
+  "Office of the Municipal Social Welfare and Development Officer (MSWDO)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-2-05" },
+  "Office of the Gender And Development": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-06" },
+  "Office of the Gender And Development (GAD)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-06" },
+  "Office of the Local Youth Development Officer": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-09" },
+  "Office of the Local Youth Development Officer (LYDO)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-09" },
+  "Office of the Municipal Anti-Drug Abuse Council": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-11" },
+  "Office of the Municipal Anti-Drug Abuse Council (MADAC)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-11" },
+  "Office of the Persons with Disability Affairs Officer": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-14" },
+  "Office of the Persons with Disability Affairs Officer (PDAO)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-14" },
+  "Department of Education (DepEd)": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-20" },
+  "SPORTS AND RECREATION": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-23" },
+  "PROVISION FOR OTHER SOCIAL DEVELOPMENT": { sectorName: "Social Services Sector", sectorCode: "3000", officeCode: "3000-000-3-3-25" },
 
-  "Department of the Agrarian Reform (DAR)": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Business Permit and Licensing Officer (BPLO)": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Market": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Municipal Agricultural Officer (DA)": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Municipal Engineer/Building Official": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Municipal Environment and Natural Resources (MENRO)": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Municipal Tourism": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Public Employment Service Officer (PESO)": { name: "ECONOMIC SERVICES", code: "3000" },
-  "Office of the Technical Education and Skills Development Authority (TESDA)": { name: "ECONOMIC SERVICES", code: "3000" }
+  // === ECONOMIC SERVICES SECTOR (8000) ===
+  "Office of the Municipal Agricultural Officer": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-2-03" },
+  "Office of the Municipal Agricultural Officer (DA)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-2-03" },
+  "Office of the Municipal Environment and Natural Resources": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-2-04" },
+  "Office of the Municipal Environment and Natural Resources (MENRO)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-2-04" },
+  "Office of the Business Permit and Licensing Officer": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-01" },
+  "Office of the Business Permit and Licensing Officer (BPLO)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-01" },
+  "Office of the Market": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-10" },
+  "Office of the Municipal Tourism": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-13" },
+  "Office of the Public Employment Service Officer": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-15" },
+  "Office of the Public Employment Service Officer (PESO)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-15" },
+  "Office of the Technical Education and Skills Development Authority": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-16" },
+  "Office of the Technical Education and Skills Development Authority (TESDA)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-16" },
+  "Department of the Agrarian Reform (DAR)": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-21" },
+  "PROVISION FOR OTHER ECONOMIC DEVELOPMENT": { sectorName: "Economic Services Sector", sectorCode: "8000", officeCode: "8000-000-3-3-26" },
+
+  // === OTHER SERVICES (9000) ===
+  "SPECIAL PURPOSE APPROPRIATION": { sectorName: "Other Services", sectorCode: "9000", officeCode: "9000-000-3-3-01" }
 };
 
 export default function LdipPage({ user }) {
@@ -60,7 +88,7 @@ export default function LdipPage({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ldipEntries, setLdipEntries] = useState([]);
 
-  // NEW: State arrays for collapsible rows tracking
+  // State arrays for collapsible rows tracking
   const [aipEntries, setAipEntries] = useState([]);
   const [budgetEntries, setBudgetEntries] = useState([]);
   const [expandedPrograms, setExpandedPrograms] = useState([]);
@@ -72,13 +100,21 @@ export default function LdipPage({ user }) {
 
   // Form Field Tracking States
   const [programTitle, setProgramTitle] = useState('');
+  const [projectName, setProjectName] = useState(''); // NEW Wizard State
+  const [activityName, setActivityName] = useState(''); // NEW Wizard State
   const [programDescription, setProgramDescription] = useState('');
   const [targetY1, setTargetY1] = useState(false);
   const [targetY2, setTargetY2] = useState(false);
   const [targetY3, setTargetY3] = useState(false);
   const [requiredBudget, setRequiredBudget] = useState('');
 
-  const assignedSector = SECTOR_MAPPING[user.department] || { name: "UNASSIGNED", code: "0000" };
+  // OPTIMIZATION FLOW STATES: Handles Step-by-Step Checkout Flow & Selection Card Flags
+  const [wizardStep, setWizardStep] = useState(1);
+  const [isNewProgram, setIsNewProgram] = useState(false);
+  const [isNewProject, setIsNewProject] = useState(false);
+  const [isNewActivity, setIsNewActivity] = useState(false);
+
+  const assignedSector = SECTOR_MAPPING[user.department] || { sectorName: "UNASSIGNED", sectorCode: "0000", officeCode: "0000-000-0-0-00" };
 
   // Extracted Loader: Fetches the primary LDIP entries and cross-references them with AIP and Budget databases
   const fetchCloudEntries = async () => {
@@ -142,11 +178,17 @@ export default function LdipPage({ user }) {
     setIsEditMode(false);
     setActiveEditingEntry(null);
     setProgramTitle('');
+    setProjectName('');
+    setActivityName('');
     setProgramDescription('');
     setTargetY1(false);
     setTargetY2(false);
     setTargetY3(false);
     setRequiredBudget('');
+    setWizardStep(1); // Reset Wizard
+    setIsNewProgram(false);
+    setIsNewProject(false);
+    setIsNewActivity(false);
     setIsModalOpen(true);
   };
 
@@ -155,11 +197,14 @@ export default function LdipPage({ user }) {
     setIsEditMode(true);
     setActiveEditingEntry(entry);
     setProgramTitle(entry.title);
+    setProjectName('N/A (Editing Master Row Container)');
+    setActivityName('N/A (Editing Master Row Container)');
     setProgramDescription(entry.description);
     setTargetY1(entry.targets.includes(year1.toString()));
     setTargetY2(entry.targets.includes(year2.toString()));
     setTargetY3(entry.targets.includes(year3.toString()));
     setRequiredBudget(entry.budget);
+    setWizardStep(3); // Jump edit straight to Final stage layout
     setIsModalOpen(true);
   };
 
@@ -205,7 +250,6 @@ export default function LdipPage({ user }) {
     if (targetY3) implementationYears.push(year3.toString());
 
     if (isEditMode && activeEditingEntry) {
-      // === ROUTE OPTION A: DISPATCH EDIT MODIFICATIONS ===
       const payload = {
         originalOffice: activeEditingEntry.office,
         originalTitle: activeEditingEntry.title,
@@ -230,7 +274,7 @@ export default function LdipPage({ user }) {
 
         if (response.ok) {
           setIsModalOpen(false);
-          fetchCloudEntries(); // Sync UI with fresh cloud values
+          fetchCloudEntries(); 
           alert("Success! Entry updated directly inside Google Sheets.");
         } else {
           alert("Failed to update database entry.");
@@ -240,36 +284,45 @@ export default function LdipPage({ user }) {
       }
 
     } else {
-      // === ROUTE OPTION B: DISPATCH CHRONOLOGICAL NEW CREATION ===
-      const newEntry = {
+      const singleManualRow = {
+        programId: "M", 
+        program: programTitle,
+        projectId: "1",
+        project: projectName || "General Project Allotment Component",
+        activityId: "1",
+        activities: activityName || "General Administrative Operation Node",
         office: user.department,
-        sectorCode: assignedSector.code,
-        sectorName: assignedSector.name,
-        title: programTitle,
-        description: programDescription,
-        targets: implementationYears,
-        budget: parseFloat(requiredBudget) || 0,
+        startingDate: `${year1}-01-01`, 
+        completionDate: `${year3}-12-31`, 
+        expectedOutputs: "Manually submitted baseline form target allocation.",
+        fundingSource: "General Municipal Fund Allotment Allocation",
+        ps: 0,
+        mooe: 0,
+        co: parseFloat(requiredBudget) || 0,
+        total: parseFloat(requiredBudget) || 0,
+        climateAdaptation: 0,
+        climateMitigation: 0,
+        ccTypologyCode: "",
+        sectorCode: assignedSector.sectorCode,
+        sectorName: assignedSector.sectorName,
+        officeCode: assignedSector.officeCode,
         timestamp: new Date().toLocaleString()
       };
 
       try {
-        const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newEntry)
+          body: JSON.stringify({
+            office: user.department,
+            rows: [singleManualRow]
+          })
         });
 
         if (response.ok) {
-          setProgramTitle('');
-          setProgramDescription('');
-          setTargetY1(false);
-          setTargetY2(false);
-          setTargetY3(false);
-          setRequiredBudget('');
           setIsModalOpen(false);
-          
-          fetchCloudEntries(); // Force structural updates live
-          alert("Success! Entry posted and saved directly to Google Sheets.");
+          fetchCloudEntries(); 
+          alert("Success! Manual form wizard has auto-populated both LDIP and AIP worksheet ledgers.");
         } else {
           const data = await response.json();
           alert(`Cloud Connection Error: ${data.message}`);
@@ -281,11 +334,189 @@ export default function LdipPage({ user }) {
     }
   };
 
+  // Processes the strict 18-column flat spreadsheet uploader matrix
+  const handleExcelImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const binaryString = evt.target.result;
+        const workbook = XLSX.read(binaryString, { type: 'binary' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        if (rawJsonData.length === 0) {
+          alert("The uploaded spreadsheet file appears to be completely empty.");
+          return;
+        }
+
+        const anchorKeys = Object.keys(rawJsonData[0]);
+        const validationBlueprint = ["Program", "Project", "Activities", "TOTAL"];
+        const structuralFlaws = validationBlueprint.filter(header => !anchorKeys.includes(header));
+
+        if (structuralFlaws.length > 0) {
+          alert(`Structural Format Mismatch! The imported file is missing required blueprint titles: ${structuralFlaws.join(', ')}. Please confirm headers match exactly.`);
+          return;
+        }
+
+        const parseExcelDate = (val) => {
+          if (!val) return '';
+          if (typeof val === 'number') {
+            const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+            const yyyy = dateObj.getUTCFullYear();
+            const mm = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+          }
+          return String(val);
+        };
+
+        // Extract Clean File Name to use as the true registered Office matching parameter
+        let parsedOfficeName = file.name.replace(/\.[^/.]+$/, "").replace(/\s*-\s*Sheet.*$/, "").trim();
+
+        // FORWARD-FILL ACCORDION TRACKING LOGIC
+        let currentProgramId = '';
+        let currentProgram = '';
+        let currentProjectId = '';
+        let currentProject = '';
+        let currentActivityId = '';
+        let currentActivities = '';
+        let currentOfficeCode = '';
+
+        const synchronizedPayload = [];
+
+        for (let i = 0; i < rawJsonData.length; i++) {
+          const row = rawJsonData[i];
+
+          if (row['Program'] !== undefined && row['Program'] !== null && String(row['Program']).trim() !== '') {
+            currentProgram = String(row['Program']).trim();
+          }
+          if (row['Program ID'] !== undefined && row['Program ID'] !== null && String(row['Program ID']).trim() !== '') {
+            currentProgramId = String(row['Program ID']).trim();
+          }
+
+          if (row['Project'] !== undefined && row['Project'] !== null && String(row['Project']).trim() !== '') {
+            currentProject = String(row['Project']).trim();
+          }
+          if (row['Project ID'] !== undefined && row['Project ID'] !== null && String(row['Project ID']).trim() !== '') {
+            currentProjectId = String(row['Project ID']).trim();
+          }
+
+          if (row['Activities'] !== undefined && row['Activities'] !== null && String(row['Activities']).trim() !== '') {
+            currentActivities = String(row['Activities']).trim();
+          }
+          if (row['Activity ID'] !== undefined && row['Activity ID'] !== null && String(row['Activity ID']).trim() !== '') {
+            currentActivityId = String(row['Activity ID']).trim();
+          }
+
+          if (!currentProgram && !currentProject) continue;
+          if (currentProgram.toLowerCase() === 'program' || currentProject.toLowerCase() === 'project') continue;
+
+          // EXPLICIT INSTRUCTION 1: ONLY use the Office Code in the Excel column rows or forward-fill group blocks
+          const rawOfficeCode = row['Office Code'] || row['Office CODE'] || row['OFFICE CODE'] || row['Office code'] || '';
+          if (rawOfficeCode !== undefined && rawOfficeCode !== null && String(rawOfficeCode).trim() !== '') {
+            currentOfficeCode = String(rawOfficeCode).trim();
+          }
+
+          const officeCode = currentOfficeCode || '3000-000-3-3-11';
+
+          // EXPLICIT INSTRUCTION 3: Extract Sector specifications strictly based on the first 4 numerical digits
+          let rowSectorCode = "3000";
+          let rowSectorName = "Social Services Sector";
+          if (officeCode && officeCode.length >= 4) {
+            const prefix = officeCode.split('-')[0];
+            if (prefix === "1000") {
+              rowSectorCode = "1000";
+              rowSectorName = "General Services Sector";
+            } else if (prefix === "3000") {
+              rowSectorCode = "3000";
+              rowSectorName = "Social Services Sector";
+            } else if (prefix === "8000") {
+              rowSectorCode = "8000";
+              rowSectorName = "Economic Services Sector";
+            } else if (prefix === "9000") {
+              rowSectorCode = "9000";
+              rowSectorName = "Other Services";
+            }
+          }
+
+          synchronizedPayload.push({
+            programId: currentProgramId,
+            program: currentProgram,
+            projectId: currentProjectId,
+            project: currentProject,
+            activityId: currentActivityId,
+            activities: currentActivities,
+            office: parsedOfficeName, 
+            startingDate: parseExcelDate(row['Starting Date']), 
+            completionDate: parseExcelDate(row['Completion Date']), 
+            expectedOutputs: row['Expected Outputs'] || '',
+            fundingSource: row['Funding Source'] || '',
+            ps: parseFloat(row['Personal Services (PS)']) || 0,
+            mooe: parseFloat(row['Maintenance & Other Operating Expenses (MOOE)']) || 0,
+            co: parseFloat(row['Capital Outlay (CO)']) || 0,
+            total: parseFloat(row['TOTAL']) || 0,
+            climateAdaptation: parseFloat(row['Climate Change and Adaptation']) || 0,
+            climateMitigation: parseFloat(row['Climate Change Mitigation']) || 0,
+            ccTypologyCode: row['CC TYPOLOGY CODE'] || '',
+            sectorCode: rowSectorCode,
+            sectorName: rowSectorName,
+            officeCode: officeCode, 
+            timestamp: new Date().toLocaleString()
+          });
+        }
+
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/ldip/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            office: parsedOfficeName,
+            rows: synchronizedPayload
+          })
+        });
+
+        if (response.ok) {
+          alert(`Success! Auto-populated and registered ${synchronizedPayload.length} nested matrix records directly into the live LDIP and AIP ledgers.`);
+          fetchCloudEntries(); 
+        } else {
+          const errResponse = await response.json();
+          alert(`Database Ledger Import Rejection: ${errResponse.message || 'Server structural verification error.'}`);
+        }
+      } catch (err) {
+        console.error("Excel mapping breakdown loop intercept failure:", err);
+        alert("An error occurred trying to parse data inside this spreadsheet. Check for workbook corruption.");
+      }
+    };
+
+    reader.readAsBinaryString(file);
+    e.target.value = ''; 
+  };
+
   const getBadgeClass = (code) => {
     if (code === "1000") return "badge badge-general";
-    if (code === "8000") return "badge badge-social";
+    if (code === "3000") return "badge badge-social"; 
     return "badge badge-economic";
   };
+
+  // DYNAMIC COMPILERS: Pulls existing unique parameters directly from active database state logs to feed shopping tile cards
+  const uniqueMasterPrograms = Array.from(new Set(ldipEntries.map(e => e.title).filter(Boolean)));
+  
+  const filteredProjectOptions = Array.from(new Set(
+    aipEntries
+      .filter(a => a && a.programTitle && programTitle && a.programTitle.trim().toLowerCase() === programTitle.trim().toLowerCase())
+      .map(a => a.projectName)
+      .filter(Boolean)
+  ));
+
+  const filteredActivityOptions = Array.from(new Set(
+    aipEntries
+      .filter(a => a && a.projectName && projectName && a.projectName.trim().toLowerCase() === projectName.trim().toLowerCase())
+      .map(a => a.activityName)
+      .filter(name => name && name !== 'PENDING_CONFIG' && !name.includes('N/A'))
+  ));
 
   return (
     <div className="main-content-stream" style={{ width: '100%' }}>
@@ -308,10 +539,22 @@ export default function LdipPage({ user }) {
         <div>
           <h2>Local Development Investment Plan (LDIP) Ledger</h2>
           <p style={{ margin: 0, color: '#64748b' }}>
-            Office Segment: <strong>{user.department}</strong> | Sector Grouping: <span className={getBadgeClass(assignedSector.code)}>{assignedSector.name} ({assignedSector.code})</span>
+            Office Segment: <strong>{user.department}</strong> | Sector Grouping: <span className={getBadgeClass(assignedSector.sectorCode)}>{assignedSector.sectorName} ({assignedSector.sectorCode})</span>
           </p>
         </div>
-        <button className="btn-primary" onClick={handleOpenCreateModal}>+ Add LDIP Entry</button>
+        
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <label className="btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.55rem 1rem' }}>
+            📁 Import Excel
+            <input 
+              type="file" 
+              accept=".xlsx, .xls, .csv" 
+              onChange={handleExcelImport} 
+              style={{ display: 'none' }} 
+            />
+          </label>
+          <button className="btn-primary" onClick={handleOpenCreateModal}>+ Add LDIP Entry</button>
+        </div>
       </div>
 
       <div className="card" style={{ overflowX: 'auto' }}>
@@ -333,17 +576,15 @@ export default function LdipPage({ user }) {
             </thead>
             <tbody>
               {ldipEntries.map(entry => {
-                // filter arrays to find active items mapped beneath this parent program name context matching
-                const matchingAip = aipEntries.filter(a => a && a.programTitle === entry.title);
-                const matchingBudget = budgetEntries.filter(b => b && b.programTitle === entry.title);
+                const matchingAip = aipEntries.filter(a => a && a.programTitle && entry.title && a.programTitle.trim().toLowerCase() === entry.title.trim().toLowerCase());
+                const matchingBudget = budgetEntries.filter(b => b && b.programTitle && entry.title && b.programTitle.trim().toLowerCase() === entry.title.trim().toLowerCase());
 
                 const aipRequirementTotal = matchingAip.reduce((sum, item) => sum + (item.total || 0), 0);
                 const annualBudgetTotal = matchingBudget.reduce((sum, item) => sum + (item.total || 0), 0);
 
-                // Build secondary dynamic structure groupings maps
                 const projectMap = {};
                 matchingAip.forEach(aipItem => {
-                  const pName = aipItem.projectName;
+                  const pName = aipItem.projectName ? aipItem.projectName.trim() : 'Untitled Project';
                   if (!projectMap[pName]) {
                     projectMap[pName] = {
                       projectName: pName,
@@ -355,15 +596,22 @@ export default function LdipPage({ user }) {
                   if (aipItem.activityName !== 'PENDING_CONFIG') {
                     projectMap[pName].aipTotal += aipItem.total || 0;
                   }
-                  const associatedBudgets = matchingBudget.filter(b => b.projectName === pName && b.activityName === aipItem.activityName);
+                  
+                  const associatedBudgets = matchingBudget.filter(b => 
+                    b.projectName && aipItem.projectName && b.projectName.trim().toLowerCase() === aipItem.projectName.trim().toLowerCase() && 
+                    b.activityName && aipItem.activityName && b.activityName.trim().toLowerCase() === aipItem.activityName.trim().toLowerCase()
+                  );
                   associatedBudgets.forEach(b => {
                     projectMap[pName].budgetTotal += b.total || 0;
                   });
 
                   const hasRealActivity = aipItem.activityName && !aipItem.activityName.includes('N/A') && aipItem.activityName !== 'PENDING_CONFIG';
                   if (hasRealActivity) {
-                    const specificBudget = matchingBudget.find(b => b.projectName === pName && b.activityName === aipItem.activityName);
-                    if (!projectMap[pName].activities.some(act => act.activityName === aipItem.activityName)) {
+                    const specificBudget = matchingBudget.find(b => 
+                      b.projectName && aipItem.projectName && b.projectName.trim().toLowerCase() === aipItem.projectName.trim().toLowerCase() && 
+                      b.activityName && aipItem.activityName && b.activityName.trim().toLowerCase() === aipItem.activityName.trim().toLowerCase()
+                    );
+                    if (!projectMap[pName].activities.some(act => act.activityName && aipItem.activityName && act.activityName.trim().toLowerCase() === aipItem.activityName.trim().toLowerCase())) {
                       projectMap[pName].activities.push({
                         activityName: aipItem.activityName,
                         aipTotal: aipItem.total || 0,
@@ -379,7 +627,6 @@ export default function LdipPage({ user }) {
 
                 return (
                   <Fragment key={entry.id || entry.title || Math.random()}>
-                    {/* LEVEL 1: MASTER PROGRAM ROW ELEMENT */}
                     <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
                       <td style={{ maxWidth: '300px' }}>
                         <div 
@@ -434,7 +681,6 @@ export default function LdipPage({ user }) {
                       </td>
                     </tr>
 
-                    {/* LEVEL 2: COMPONENT PROJECT ROWS SECTION */}
                     {isProgExpanded && projectsList.map(proj => {
                       const projKey = `${entry.title}|||${proj.projectName}`;
                       const isProjExpanded = expandedProjects.includes(projKey);
@@ -468,7 +714,6 @@ export default function LdipPage({ user }) {
                             <td>—</td>
                           </tr>
 
-                          {/* LEVEL 3: DYNAMIC ACCORDION ACTIVITY TASKS ROWS */}
                           {isProjExpanded && proj.activities.map(act => (
                             <tr key={`${projKey}|||${act.activityName}`} style={{ backgroundColor: '#fffdfa', borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ paddingLeft: '48px', color: '#475569', fontSize: '0.82rem' }}>
@@ -499,85 +744,234 @@ export default function LdipPage({ user }) {
 
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ width: '650px', maxWidth: '95vw' }}>
             
             <div className="modal-header-section">
-              <h2 style={{ margin: 0 }}>{isEditMode ? 'Modify Investment Entry' : 'New Local Investment Entry'}</h2>
+              <h2 style={{ margin: 0 }}>{isEditMode ? 'Modify Investment Entry' : 'Guided Investment Form Wizard'}</h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                {isEditMode ? `Modifying database attributes for: ${programTitle}` : `Formulating infrastructure allocation for ${user.department}`}
+                {isEditMode ? `Modifying structural values for: ${programTitle}` : `Step-by-Step guided ledger formatting window`}
               </p>
+            </div>
+
+            {/* CHECKOUT WIZARD PROGRESS TRACKING HEADER ALLOTMENT */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '1.25rem 0', background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: wizardStep === 1 ? '#1e3a8a' : '#94a3b8' }}>🎯 Step 1: Program</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: wizardStep === 2 ? '#1e3a8a' : '#94a3b8' }}>📁 Step 2: Project</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: wizardStep === 3 ? '#1e3a8a' : '#94a3b8' }}>🌿 Step 3: Capital details</span>
             </div>
             
             <form onSubmit={handleFormSubmit}>
               
-              <div className="form-field-group">
-                <label>Program / Project Title</label>
-                <div className="label-helper">Provide a concise, formal name of the development project or public procurement proposal.</div>
-                <input 
-                  type="text" 
-                  value={programTitle} 
-                  onChange={(e) => setProgramTitle(e.target.value)} 
-                  placeholder="e.g., Procurement of High-Capacity Medical Response Assets" 
-                  required 
-                />
-              </div>
+              {/* ==========================================
+                  WIZARD STEP 1: OVERSIZED PROGRAM TILE SELECTION
+                  ========================================== */}
+              {wizardStep === 1 && (
+                <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
+                  <label style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>Select Parent Program Container</label>
+                  <div className="label-helper" style={{ marginBottom: '12px' }}>Choose an existing master program category from the active database or create a brand new one.</div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {uniqueMasterPrograms.map(prog => (
+                      <div 
+                        key={prog}
+                        style={{ border: (programTitle === prog && !isNewProgram) ? '2px solid #10b981' : '1px solid #cbd5e1', backgroundColor: (programTitle === prog && !isNewProgram) ? '#f0fdf4' : '#ffffff', padding: '0.85rem', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                        onClick={() => { setProgramTitle(prog); setIsNewProgram(false); }}
+                      >
+                        <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#1e293b' }}>🎯 {prog}</div>
+                        {(programTitle === prog && !isNewProgram) && <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>✓ Active Selected</span>}
+                      </div>
+                    ))}
+                    <div 
+                      style={{ border: isNewProgram ? '2px solid #10b981' : '1px dashed #94a3b8', backgroundColor: isNewProgram ? '#f0fdf4' : '#f8fafc', padding: '0.85rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}
+                      onClick={() => { setProgramTitle(''); setIsNewProgram(true); }}
+                    >
+                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#475569' }}>➕ Add Brand New Program</div>
+                    </div>
+                  </div>
 
-              <div className="form-field-group">
-                <label>Program Description Scope</label>
-                <div className="label-helper">Outline specific targets, equipment counts, target implementation areas, or necessary operational background details.</div>
-                <textarea 
-                  value={programDescription} 
-                  onChange={(e) => setProgramDescription(e.target.value)} 
-                  placeholder="e.g., Acquisition of 3 fully equipped municipal ambulances to be distributed strategically among critical triage hubs..." 
-                  required 
-                />
-              </div>
+                  {isNewProgram && (
+                    <div style={{ marginTop: '1rem', animation: 'fadeIn 0.15s ease' }} className="form-field-group">
+                      <label style={{ fontSize: '0.8rem', color: '#1e3a8a' }}>Type New Program Name</label>
+                      <input 
+                        type="text"
+                        value={programTitle}
+                        onChange={(e) => setProgramTitle(e.target.value)}
+                        placeholder="e.g., Municipal Anti-Drug Abuse Action Plan Framework"
+                        required
+                      />
+                    </div>
+                  )}
 
-              <div className="form-field-group">
-                <label>Target Implementation Timeline</label>
-                <div className="label-helper">Select the projected fiscal funding slots. You can select multiple boxes depending on program roll-out.</div>
-                
-                <div className="year-selector-grid">
-                  <label className={`year-selection-card ${targetY1 ? 'active-selected' : ''}`}>
-                    <input type="checkbox" checked={targetY1} onChange={(e) => setTargetY1(e.target.checked)} />
-                    <div className="card-year-title">{year1}</div>
-                    <div className="card-year-sub">Year 1 Slot</div>
-                  </label>
-
-                  <label className={`year-selection-card ${targetY2 ? 'active-selected' : ''}`}>
-                    <input type="checkbox" checked={targetY2} onChange={(e) => setTargetY2(e.target.checked)} />
-                    <div className="card-year-title">{year2}</div>
-                    <div className="card-year-sub">Year 2 Slot</div>
-                  </label>
-
-                  <label className={`year-selection-card ${targetY3 ? 'active-selected' : ''}`}>
-                    <input type="checkbox" checked={targetY3} onChange={(e) => setTargetY3(e.target.checked)} />
-                    <div className="card-year-title">{year3}</div>
-                    <div className="card-year-sub">Year 3 Slot</div>
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      disabled={!programTitle.trim()} 
+                      onClick={() => setWizardStep(2)}
+                    >
+                      Proceed to Projects ➔
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="form-field-group">
-                <label>Required Funding Capital Allotment</label>
-                <div className="label-helper">State the global financial baseline required to execute this entry project.</div>
-                <div className="currency-wrapper">
-                  <span className="currency-symbol">₱</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={requiredBudget} 
-                    onChange={(e) => setRequiredBudget(e.target.value)} 
-                    placeholder="0.00" 
-                    required 
-                  />
+              {/* ==========================================
+                  WIZARD STEP 2: OVERSIZED PROJECT TILE SELECTION
+                  ========================================== */}
+              {wizardStep === 2 && (
+                <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
+                  <label style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>Select Component Project Segment</label>
+                  <div className="label-helper" style={{ marginBottom: '12px' }}>Parent Context: <strong style={{ color: '#1e3a8a' }}>{programTitle}</strong></div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {filteredProjectOptions.map(proj => (
+                      <div 
+                        key={proj}
+                        style={{ border: (projectName === proj && !isNewProject) ? '2px solid #10b981' : '1px solid #cbd5e1', backgroundColor: (projectName === proj && !isNewProject) ? '#f0fdf4' : '#ffffff', padding: '0.85rem', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                        onClick={() => { setProjectName(proj); setIsNewProject(false); }}
+                      >
+                        <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#1e293b' }}>📁 Project: {proj}</div>
+                        {(projectName === proj && !isNewProject) && <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>✓ Active Selected</span>}
+                      </div>
+                    ))}
+                    <div 
+                      style={{ border: isNewProject ? '2px solid #10b981' : '1px dashed #94a3b8', backgroundColor: isNewProject ? '#f0fdf4' : '#f8fafc', padding: '0.85rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}
+                      onClick={() => { setProjectName(''); setIsNewProject(true); }}
+                    >
+                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#475569' }}>➕ Add Brand New Project</div>
+                    </div>
+                  </div>
+
+                  {isNewProject && (
+                    <div style={{ marginTop: '1rem', animation: 'fadeIn 0.15s ease' }} className="form-field-group">
+                      <label style={{ fontSize: '0.8rem', color: '#1e3a8a' }}>Type New Project Name</label>
+                      <input 
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="e.g., Implementation of Drug Clearing Operations"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                    <button type="button" className="btn-secondary" onClick={() => setWizardStep(1)}>⬅ Back to Step 1</button>
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      disabled={!projectName.trim()} 
+                      onClick={() => setWizardStep(3)}
+                    >
+                      Proceed to Details ➔
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">{isEditMode ? 'Save Modifications' : 'Submit To Ledger'}</button>
-              </div>
+              {/* ==========================================
+                  WIZARD STEP 3: ACTIVITY DETAILS, SCOPE & ALLOTMENT
+                  ========================================== */}
+              {wizardStep === 3 && (
+                <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
+                  
+                  {!isEditMode && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.8rem' }}>Selected Program Container</label>
+                        <input type="text" value={programTitle} disabled style={{ backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }} />
+                      </div>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.8rem' }}>Selected Project Container</label>
+                        <input type="text" value={projectName} disabled style={{ backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {!isEditMode && (
+                    <div className="form-field-group">
+                      <label>Core Activity Description Node</label>
+                      <div className="label-helper">State the operation task. Select from suggestions below or type a brand new node string.</div>
+                      <input 
+                        type="text" 
+                        value={activityName}
+                        onChange={(e) => setActivityName(e.target.value)}
+                        placeholder="e.g., Conduction of Symposia for High School Students"
+                        required
+                      />
+                      {filteredActivityOptions.length > 0 && (
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                          {filteredActivityOptions.map(opt => (
+                            <span 
+                              key={opt} 
+                              style={{ fontSize: '0.72rem', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px', cursor: 'pointer', border: activityName === opt ? '1px solid #10b981' : '1px solid transparent', color: activityName === opt ? '#166534' : '#475569', fontWeight: activityName === opt ? '700' : '400' }}
+                              onClick={() => setActivityName(opt)}
+                            >
+                              🌿 {opt}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="form-field-group">
+                    <label>Program Objective Scope / Expected Outputs</label>
+                    <textarea 
+                      value={programDescription} 
+                      onChange={(e) => setProgramDescription(e.target.value)} 
+                      placeholder="e.g., Procurement of 30 informational triage brochures and localized data monitoring grids..." 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-field-group">
+                    <label>Target Implementation Timeline</label>
+                    <div className="year-selector-grid">
+                      <label className={`year-selection-card ${targetY1 ? 'active-selected' : ''}`}>
+                        <input type="checkbox" checked={targetY1} onChange={(e) => setTargetY1(e.target.checked)} />
+                        <div className="card-year-title">{year1}</div>
+                        <div className="card-year-sub">Year 1 Allotment</div>
+                      </label>
+                      <label className={`year-selection-card ${targetY2 ? 'active-selected' : ''}`}>
+                        <input type="checkbox" checked={targetY2} onChange={(e) => setTargetY2(e.target.checked)} />
+                        <div className="card-year-title">{year2}</div>
+                        <div className="card-year-sub">Year 2 Allotment</div>
+                      </label>
+                      <label className={`year-selection-card ${targetY3 ? 'active-selected' : ''}`}>
+                        <input type="checkbox" checked={targetY3} onChange={(e) => setTargetY3(e.target.checked)} />
+                        <div className="card-year-title">{year3}</div>
+                        <div className="card-year-sub">Year 3 Allotment</div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="form-field-group" style={{ margin: 0 }}>
+                    <label>Required Funding Capital Allotment Baseline</label>
+                    <div className="currency-wrapper">
+                      <span className="currency-symbol">₱</span>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        value={requiredBudget} 
+                        onChange={(e) => setRequiredBudget(e.target.value)} 
+                        placeholder="0.00" 
+                        required 
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+                    {isEditMode ? (
+                      <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                    ) : (
+                      <button type="button" className="btn-secondary" onClick={() => setWizardStep(2)}>⬅ Back to Step 2</button>
+                    )}
+                    <button type="submit" className="btn-primary">{isEditMode ? 'Save Modifications' : 'Submit To Ledgers'}</button>
+                  </div>
+                </div>
+              )}
+
             </form>
 
           </div>

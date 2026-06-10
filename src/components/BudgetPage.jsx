@@ -9,11 +9,11 @@ export default function BudgetPage({ user }) {
   // Selected Target Reference Tracking
   const [selectedAipRow, setSelectedAipRow] = useState(null);
 
-  // Search & Tiered Filtering Control States
+  // SEARCH & PROGRESSIVE 4-STAGE WIZARD FLOW CONTROL STATES
+  const [wizardStep, setWizardStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [progFilter, setProgFilter] = useState('');
   const [projFilter, setProjFilter] = useState('');
-  const [actFilter, setActFilter] = useState('');
 
   // Manual Encoding Form Tracking Fields
   const [performanceIndicator, setPerformanceIndicator] = useState('');
@@ -32,11 +32,11 @@ export default function BudgetPage({ user }) {
     try {
       const dept = user?.department || '';
       
-      const aipRes = await fetch(`https://municipal-budget-backend.onrender.com/api/aip/${encodeURIComponent(dept)}`);
+      const aipRes = await fetch(`http://localhost:5000/api/aip/${encodeURIComponent(dept)}`);
       const aipData = aipRes.ok ? await aipRes.json() : [];
       setAllAipItems(Array.isArray(aipData) ? aipData.filter(item => item !== null) : []);
 
-      const budgetRes = await fetch(`https://municipal-budget-backend.onrender.com/api/budget/${encodeURIComponent(dept)}`);
+      const budgetRes = await fetch(`http://localhost:5000/api/budget/${encodeURIComponent(dept)}`);
       const budgetData = budgetRes.ok ? await budgetRes.json() : [];
       setBudgetLedger(budgetData);
 
@@ -58,32 +58,31 @@ export default function BudgetPage({ user }) {
     }
     setSelectedAipRow(null);
     setSearchQuery('');
-    setProgFilter(''); setProjFilter(''); setActFilter('');
+    setProgFilter(''); setProjFilter('');
     setPerformanceIndicator('');
     setTargetBudgetYear('');
     setAnnualPs(''); setAnnualMooe(''); setAnnualCo('');
+    setWizardStep(1); // Reset wizard flow back to step 1
     setIsModalOpen(true);
   };
 
-  const uniquePrograms = [...new Set(aipQueue.map(item => item.programTitle))];
+  // EXTRACT SYSTEM MATRIX PATHS DIRECTLY FROM DATABASE STATE LOGS
+  const uniquePrograms = [...new Set(aipQueue.map(item => item.programTitle).filter(Boolean))];
+  
   const uniqueProjects = [...new Set(
     aipQueue
-      .filter(item => !progFilter || item.programTitle === progFilter)
+      .filter(item => item && item.programTitle && progFilter && item.programTitle.trim().toLowerCase() === progFilter.trim().toLowerCase())
       .map(item => item.projectName)
-  )];
-  const uniqueActivities = [...new Set(
-    aipQueue
-      .filter(item => (!progFilter || item.programTitle === progFilter) && (!projFilter || item.projectName === projFilter))
-      .map(item => item.activityName)
+      .filter(Boolean)
   )];
 
-  const filteredAipResults = aipQueue.filter(item => {
-    const matchesProg = !progFilter || item.programTitle === progFilter;
-    const matchesProj = !projFilter || item.projectName === projFilter;
-    const matchesAct = !actFilter || item.activityName === actFilter;
-    const textTarget = `${item.projectName} ${item.activityName}`.toLowerCase();
+  // NARROW DOWN DYNAMIC ACTIVITY ROWS MATCHING STEPS 1 AND 2 CHOICES
+  const filteredAipActivities = aipQueue.filter(item => {
+    const matchesProg = item && item.programTitle && progFilter && item.programTitle.trim().toLowerCase() === progFilter.trim().toLowerCase();
+    const matchesProj = item && item.projectName && projFilter && item.projectName.trim().toLowerCase() === projFilter.trim().toLowerCase();
+    const textTarget = `${item.activityName} ${item.aipRefCode}`.toLowerCase();
     const matchesSearch = !searchQuery || textTarget.includes(searchQuery.toLowerCase());
-    return matchesProg && matchesProj && matchesAct && matchesSearch;
+    return matchesProg && matchesProj && matchesSearch;
   });
 
   const handleSelectItemSelect = (item) => {
@@ -116,7 +115,6 @@ export default function BudgetPage({ user }) {
       return;
     }
 
-    // Set holding state payload parameters
     setPendingPayload({
       aipRefCode: selectedAipRow.aipRefCode,
       office: user.department,
@@ -132,7 +130,6 @@ export default function BudgetPage({ user }) {
       total: parsedPs + parsedMooe + parsedCo
     });
 
-    // FIXED: Removed the invalid setActiveTargetRow reference to prevent runtime thread crash execution
     setShowProcurementPrompt(true);
   };
 
@@ -145,7 +142,7 @@ export default function BudgetPage({ user }) {
     };
 
     try {
-      const response = await fetch('https://municipal-budget-backend.onrender.com/api/budget', {
+      const response = await fetch('http://localhost:5000/api/budget', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalSubmissionBody)
@@ -202,7 +199,6 @@ export default function BudgetPage({ user }) {
                 <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '180px' }}>
                   Program / Project / Activity (PPA) Description
                 </th>
-                
                 <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '130px', backgroundColor: '#fdf2f8' }}>
                   Major Final Output (MFO)
                 </th>
@@ -212,7 +208,6 @@ export default function BudgetPage({ user }) {
                 <th rowSpan="2" style={{ border: '1px solid #cbd5e1', padding: '10px', verticalAlign: 'middle', textAlign: 'left', fontWeight: '700', minWidth: '130px', backgroundColor: '#fdf2f8' }}>
                   Target for the Budget Year
                 </th>
-
                 <th colSpan="4" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', fontWeight: '700', color: '#1e3a8a', backgroundColor: '#e0f2fe' }}>
                   Budget Year Allotment (Proposed)
                 </th>
@@ -247,7 +242,6 @@ export default function BudgetPage({ user }) {
                         </div>
                       )}
                     </td>
-
                     <td style={{ border: '1px solid #cbd5e1', padding: '10px', color: '#334155', fontWeight: '500', backgroundColor: '#fffdfa' }}>
                       {matchingAip?.expectedOutput || '—'}
                     </td>
@@ -257,7 +251,6 @@ export default function BudgetPage({ user }) {
                     <td style={{ border: '1px solid #cbd5e1', padding: '10px', color: '#0f172a', fontWeight: '600', backgroundColor: '#fffdfa' }}>
                       {row.targetBudgetYear || '—'}
                     </td>
-
                     <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'right', fontWeight: '600', fontFamily: 'monospace' }}>
                       ₱{row.ps.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
@@ -281,158 +274,198 @@ export default function BudgetPage({ user }) {
       {/* SEARCH AND ASSIGNMENT MODAL OVERLAY PORTAL */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '750px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          <div className="modal-content" style={{ width: '680px', maxWidth: '95vw', maxHeight: '95vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             
             <button 
               type="button" 
               onClick={() => setIsModalOpen(false)} 
-              style={{ position: 'absolute', right: '1.5rem', top: '1.25rem', background: '#f1f5f9', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#475569', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', zIndex: '50', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
-              onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
+              style={{ position: 'absolute', right: '1.5rem', top: '1.25rem', background: '#f1f5f9', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#475569', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', zIndex: '50' }}
             >
               &times;
             </button>
 
-            <div className="modal-header-section" style={{ paddingBottom: '0.75rem', marginBottom: '0.75rem', paddingRight: '40px' }}>
-              <h2 style={{ margin: 0 }}>Import PPA Asset From AIP Log Tracking</h2>
-              <p className="label-helper" style={{ margin: '4px 0 0 0' }}>Search and select an authorized PPA. Allotments are strictly capped by original AIP targets.</p>
+            <div className="modal-header-section" style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+              <h2 style={{ margin: 0 }}>Programmed Allocation Allocation Wizard</h2>
+              <p className="label-helper" style={{ margin: '4px 0 0 0' }}>Guided sequential checkout flow mapping unallocated AIP records to LBF No. 4.</p>
+            </div>
+
+            {/* PROGRESS CHECKOUT TRACKING BAR GRID HEADER */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.75rem 0', background: '#f8fafc', padding: '0.6rem 1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 1 ? '#0284c7' : '#94a3b8' }}>🎯 Step 1: Program</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 2 ? '#0284c7' : '#94a3b8' }}>📁 Step 2: Project</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 3 ? '#0284c7' : '#94a3b8' }}>🌿 Step 3: Activity</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: wizardStep === 4 ? '#0284c7' : '#94a3b8' }}>₱ Step 4: Allotments</span>
             </div>
             
-            <div style={{ overflowY: 'auto', paddingRight: '4px' }}>
+            <div style={{ overflowY: 'auto', paddingRight: '4px', flex: 1 }}>
               <form onSubmit={handleFormSubmit}>
                 
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
-                    🔍 Advanced PPA Locator Panel
-                  </span>
-                  
-                  <div className="form-field-group" style={{ marginBottom: '0.75rem' }}>
+                {/* =======================================================
+                    STAGE WIZARD 1: MASTER PROGRAM SHOPPING TILE GRID
+                    ======================================================= */}
+                {wizardStep === 1 && (
+                  <div style={{ animation: 'fadeIn 0.2s ease' }}>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#334155' }}>Select Parent Program Template Basket:</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      {uniquePrograms.map(prog => (
+                        <div
+                          key={prog}
+                          style={{ border: progFilter === prog ? '2px solid #0284c7' : '1px solid #cbd5e1', backgroundColor: progFilter === prog ? '#f0f9ff' : '#ffffff', padding: '1rem', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.1s ease' }}
+                          onClick={() => setProgFilter(prog)}
+                        >
+                          <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#1e293b' }}>🎯 {prog}</div>
+                          {progFilter === prog && <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '700', display: 'block', marginTop: '4px' }}>✓ Selected Active</span>}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                      <button 
+                        type="button" 
+                        className="btn-primary" 
+                        disabled={!progFilter}
+                        onClick={() => setWizardStep(2)}
+                      >
+                        Proceed to Component Projects ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* =======================================================
+                    STAGE WIZARD 2: SUB-PROJECT SHOPPING TILE GRID 
+                    ======================================================= */}
+                {wizardStep === 2 && (
+                  <div style={{ animation: 'fadeIn 0.2s ease' }}>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#334155' }}>Select Component Project Target:</label>
+                    <div className="label-helper" style={{ marginBottom: '12px' }}>Parent Filter Anchor: <strong>{progFilter}</strong></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      {uniqueProjects.map(proj => (
+                        <div
+                          key={proj}
+                          style={{ border: projFilter === proj ? '2px solid #0284c7' : '1px solid #cbd5e1', backgroundColor: projFilter === proj ? '#f0f9ff' : '#ffffff', padding: '1rem', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.1s ease' }}
+                          onClick={() => setProjFilter(proj)}
+                        >
+                          <div style={{ fontSize: '0.88rem', fontWeight: '600', color: '#1e293b' }}>📁 Project: {proj}</div>
+                          {projFilter === proj && <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '700', display: 'block', marginTop: '4px' }}>✓ Selected Active</span>}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setWizardStep(1)}>⬅ Back to Step 1</button>
+                      <button 
+                        type="button" 
+                        className="btn-primary" 
+                        disabled={!projFilter}
+                        onClick={() => setWizardStep(3)}
+                      >
+                        Proceed to Activity Nodes ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* =======================================================
+                    STAGE WIZARD 3: CORE ACTIVITY SHOPPING TILE GRID (NEW SPECIFICATION)
+                    ======================================================= */}
+                {wizardStep === 3 && (
+                  <div style={{ animation: 'fadeIn 0.2s ease' }}>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', fontSize: '0.9rem', color: '#334155' }}>Select Granular Activity Node Card:</label>
+                    <div className="label-helper" style={{ marginBottom: '12px' }}>Project Context: <strong style={{ color: '#0284c7' }}>{projFilter}</strong></div>
+
                     <input 
                       type="text" 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Type keywords to search Project Name or Activity Title text dynamically..."
-                      style={{ padding: '0.6rem 1rem', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                      value={searchQuery} 
+                      onChange={(e) => setSearchQuery(e.target.value)} 
+                      placeholder="Type phrase keywords to filter activity tiles below instantly..." 
+                      style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', marginBottom: '12px', width: '100%', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
-                  </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                    <div className="form-field-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>1. Filter by Program</label>
-                      <select value={progFilter} onChange={(e) => { setProgFilter(e.target.value); setProjFilter(''); setActFilter(''); }} style={{ padding: '0.4rem', fontSize: '0.8rem' }}>
-                        <option value="">— All Programs —</option>
-                        {uniquePrograms.map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-
-                    <div className="form-field-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>2. Filter by Project</label>
-                      <select value={projFilter} onChange={(e) => { setProjFilter(e.target.value); setActFilter(''); }} style={{ padding: '0.4rem', fontSize: '0.8rem' }}>
-                        <option value="">— All Projects —</option>
-                        {uniqueProjects.map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-
-                    <div className="form-field-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>3. Filter by Activity</label>
-                      <select value={actFilter} onChange={(e) => setActFilter(e.target.value)} style={{ padding: '0.4rem', fontSize: '0.8rem' }}>
-                        <option value="">— All Activities —</option>
-                        {uniqueActivities.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    Matching Unbudgeted AIP Targets ({filteredAipResults.length})
-                  </label>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}>
-                    {filteredAipResults.length === 0 ? (
-                      <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', margin: '2rem 0' }}>No unbudgeted items match your locator parameters.</p>
-                    ) : (
-                      filteredAipResults.map(item => {
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {filteredAipActivities.map(item => {
                         const isSelected = selectedAipRow?.aipRefCode === item.aipRefCode;
                         return (
-                          <div 
+                          <div
                             key={item.aipRefCode}
+                            style={{ border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1', backgroundColor: isSelected ? '#f0fdf4' : '#ffffff', padding: '0.85rem', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.1s ease' }}
                             onClick={() => handleSelectItemSelect(item)}
-                            style={{
-                              padding: '0.5rem 0.75rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                              backgroundColor: isSelected ? '#eff6ff' : 'transparent',
-                              borderLeft: isSelected ? '4px solid #3b82f6' : '4px solid transparent',
-                              transition: 'all 0.15s ease'
-                            }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '0.8rem', color: '#0284c7' }}>{item.aipRefCode}</span>
-                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>AIP Total: ₱{item.total.toLocaleString()}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: '700', marginBottom: '4px' }}>
+                              <span style={{ color: '#0284c7', fontFamily: 'monospace' }}>{item.aipRefCode}</span>
+                              <span style={{ color: '#64748b' }}>AIP: ₱{item.total.toLocaleString()}</span>
                             </div>
-                            <div style={{ fontWeight: '600', fontSize: '0.85rem', color: '#1e293b', marginTop: '2px' }}>{item.projectName}</div>
-                            {item.activityName && !item.activityName.includes('N/A') && (
-                              <div style={{ fontSize: '0.8rem', color: '#475569', fontStyle: 'italic' }}>🌿 Node: {item.activityName}</div>
-                            )}
+                            <div style={{ fontSize: '0.82rem', fontWeight: '600', color: '#1e293b', lineHeight: '1.3' }}>
+                              🌿 {item.activityName || 'Standalone Project Allotment Component'}
+                            </div>
+                            {isSelected && <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '700', display: 'block', marginTop: '6px' }}>✓ Active Selected</span>}
                           </div>
                         );
-                      })
-                    )}
+                      })}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setWizardStep(2)}>⬅ Back to Step 2</button>
+                      <button 
+                        type="button" 
+                        className="btn-primary" 
+                        disabled={!selectedAipRow}
+                        onClick={() => setWizardStep(4)}
+                      >
+                        Proceed to Allotment Forms ➔
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {selectedAipRow ? (
-                  <div style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
-                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '700' }}>
-                        Locked Target Caps Checklist: ({selectedAipRow.aipRefCode})
-                      </span>
-                      <div style={{ display: 'flex', gap: '1.25rem', marginTop: '4px', fontSize: '0.85rem', color: '#14532d', fontWeight: '600' }}>
-                        <div>PS Max: ₱{selectedAipRow.ps.toLocaleString()}</div>
-                        <div>MOOE Max: ₱{selectedAipRow.mooe.toLocaleString()}</div>
-                        <div>CO Max: ₱{selectedAipRow.co.toLocaleString()}</div>
-                      </div>
-                    </div>
-
-                    <label style={{ color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-                      MANUAL REPORTING MEASURES CONFIGURATION
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                      <div className="form-field-group">
-                        <label>Performance Indicator / Output Measure</label>
-                        <input type="text" value={performanceIndicator} onChange={(e) => setPerformanceIndicator(e.target.value)} placeholder="e.g., Number of emergency facilities upgraded" required />
-                      </div>
-                      <div className="form-field-group">
-                        <label>Target for the Budget Year</label>
-                        <input type="text" value={targetBudgetYear} onChange={(e) => setTargetBudgetYear(e.target.value)} placeholder="e.g., 100% compliance within 12 months" required />
-                      </div>
-                    </div>
-
-                    <label style={{ color: '#1e3a8a', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', display: 'block', fontWeight: '600', fontSize: '0.85rem' }}>
-                      DEFINITIVE ANNUAL BUDGET ALLOCATIONS (PESOS)
-                    </label>
+                {/* =======================================================
+                    STAGE WIZARD 4: ALLOTMENT DETAILS, CEILINGS & FINANCIAL MATRICES
+                    ======================================================= */}
+                {wizardStep === 4 && selectedAipRow && (
+                  <div style={{ animation: 'fadeIn 0.2s ease' }}>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginTop: '0.75rem' }}>
-                      <div className="form-field-group">
-                        <label>Annual PS Allotment</label>
+                    <div style={{ background: '#f8fafc', padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '1rem', fontSize: '0.8rem', color: '#475569', lineHeight: '1.4' }}>
+                      <div>Selected Reference: <strong style={{ fontFamily: 'monospace', color: '#0284c7' }}>{selectedAipRow.aipRefCode}</strong></div>
+                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Selected Activity: <strong>{selectedAipRow.activityName}</strong></div>
+                    </div>
+
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.6rem 1rem', borderRadius: '6px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#166534', fontWeight: '700' }}>
+                      <span>PS Ceiling: ₱{selectedAipRow.ps.toLocaleString()}</span>
+                      <span>MOOE Ceiling: ₱{selectedAipRow.mooe.toLocaleString()}</span>
+                      <span>CO Ceiling: ₱{selectedAipRow.co.toLocaleString()}</span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Performance Indicator / Output</label>
+                        <input type="text" value={performanceIndicator} onChange={(e) => setPerformanceIndicator(e.target.value)} placeholder="Outputs metrics indicator" required />
+                      </div>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Target for the Budget Year</label>
+                        <input type="text" value={targetBudgetYear} onChange={(e) => setTargetBudgetYear(e.target.value)} placeholder="Target compliance rate" required />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Proposed PS Value</label>
                         <input type="number" step="0.01" value={annualPs} onWheel={(e) => e.target.blur()} onChange={(e) => setAnnualPs(e.target.value)} required />
                       </div>
-                      <div className="form-field-group">
-                        <label>Annual MOOE Allotment</label>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Proposed MOOE Value</label>
                         <input type="number" step="0.01" value={annualMooe} onWheel={(e) => e.target.blur()} onChange={(e) => setAnnualMooe(e.target.value)} required />
                       </div>
-                      <div className="form-field-group">
-                        <label>Annual CO Allotment</label>
+                      <div className="form-field-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Proposed CO Value</label>
                         <input type="number" step="0.01" value={annualCo} onWheel={(e) => e.target.blur()} onChange={(e) => setAnnualCo(e.target.value)} required />
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                      <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                      <button type="submit" className="btn-primary">Approve & Log Allotment</button>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                      <button type="button" className="btn-secondary" onClick={() => setWizardStep(3)}>⬅ Back to Step 3</button>
+                      <button type="submit" className="btn-primary">Verify & Log Allotment</button>
                     </div>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed #cbd5e1', borderRadius: '6px', background: '#fafafa', color: '#64748b', fontSize: '0.9rem' }}>
-                    💡 Please filter and click on a target AIP item row above to launch allocation input fields.
                   </div>
                 )}
 
