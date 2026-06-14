@@ -43,10 +43,10 @@ export default function AuthForm({ onLoginSuccess }) {
 
     if (isLogin) {
       try {
-        const response = await fetch('https://municipal-budget-backend.onrender.com/api/login', {
+        const response = await fetch('[https://municipal-budget-backend.onrender.com/api/login](https://municipal-budget-backend.onrender.com/api/login)', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ username: email, email, password }), // Synchronized fields mapping payload safely
         });
         const data = await response.json();
         if (response.ok) {
@@ -58,9 +58,9 @@ export default function AuthForm({ onLoginSuccess }) {
         setErrorMessage("Failed to reach the server.");
       }
     } else {
-      const registrationData = { email, password, nameOfUser, userType, department, nameOfEndUser: nameOfUser, contactNumber };
+      const registrationData = { username: email, email, password, nameOfUser, userType, department, nameOfEndUser: nameOfUser, contactNumber }; // Synchronized fields mapping payload safely
       try {
-        const response = await fetch('https://municipal-budget-backend.onrender.com/api/register', {
+        const response = await fetch('[https://municipal-budget-backend.onrender.com/api/register](https://municipal-budget-backend.onrender.com/api/register)', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(registrationData),
