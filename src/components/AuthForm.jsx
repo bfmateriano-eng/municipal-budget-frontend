@@ -43,10 +43,10 @@ export default function AuthForm({ onLoginSuccess }) {
 
     if (isLogin) {
       try {
-        const response = await fetch('[https://municipal-budget-backend.onrender.com/api/login](https://municipal-budget-backend.onrender.com/api/login)', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: email, email, password }), // Synchronized fields mapping payload safely
+          body: JSON.stringify({ username: email, email, password }),
         });
         const data = await response.json();
         if (response.ok) {
@@ -58,9 +58,9 @@ export default function AuthForm({ onLoginSuccess }) {
         setErrorMessage("Failed to reach the server.");
       }
     } else {
-      const registrationData = { username: email, email, password, nameOfUser, userType, department, nameOfEndUser: nameOfUser, contactNumber }; // Synchronized fields mapping payload safely
+      const registrationData = { username: email, email, password, nameOfUser, userType, department, nameOfEndUser: nameOfUser, contactNumber };
       try {
-        const response = await fetch('[https://municipal-budget-backend.onrender.com/api/register](https://municipal-budget-backend.onrender.com/api/register)', {
+        const response = await fetch('https://municipal-budget-backend.onrender.com/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(registrationData),
@@ -115,30 +115,78 @@ export default function AuthForm({ onLoginSuccess }) {
           {successMessage && <div className="alert alert-success" style={{ margin: 0, borderLeft: '4px solid #166534', fontWeight: '600' }}>{successMessage}</div>}
 
           <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-            <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Email Address:</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ boxSizing: 'border-box' }} />
+            <label htmlFor="auth-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Email Address:</label>
+            <input 
+              id="auth-email" 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              required 
+              placeholder="username@pililla.gov.ph"
+              title="Email Address"
+              aria-label="Email Address"
+              style={{ boxSizing: 'border-box' }} 
+            />
           </div>
           
           <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-            <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Password:</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ boxSizing: 'border-box' }} />
+            <label htmlFor="auth-password" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Password:</label>
+            <input 
+              id="auth-password" 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
+              placeholder="••••••••"
+              title="Password"
+              aria-label="Password"
+              style={{ boxSizing: 'border-box' }} 
+            />
           </div>
 
           {!isLogin && (
             <>
               <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Confirm Password:</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ boxSizing: 'border-box' }} />
+                <label htmlFor="auth-confirm" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Confirm Password:</label>
+                <input 
+                  id="auth-confirm" 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  required 
+                  placeholder="••••••••"
+                  title="Confirm Password"
+                  aria-label="Confirm Password"
+                  style={{ boxSizing: 'border-box' }} 
+                />
               </div>
               
               <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Name of User:</label>
-                <input type="text" value={nameOfUser} onChange={(e) => setNameOfUser(e.target.value)} required style={{ boxSizing: 'border-box' }} />
+                <label htmlFor="auth-name" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Name of User:</label>
+                <input 
+                  id="auth-name" 
+                  type="text" 
+                  value={nameOfUser} 
+                  onChange={(e) => setNameOfUser(e.target.value)} 
+                  required 
+                  placeholder="e.g., Juan Dela Cruz"
+                  title="Name of User"
+                  aria-label="Name of User"
+                  style={{ boxSizing: 'border-box' }} 
+                />
               </div>
               
               <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>User Type:</label>
-                <select value={userType} onChange={(e) => setUserType(e.target.value)} required style={{ boxSizing: 'border-box', width: '100%' }}>
+                <label htmlFor="auth-type" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>User Type:</label>
+                <select 
+                  id="auth-type" 
+                  value={userType} 
+                  onChange={(e) => setUserType(e.target.value)} 
+                  required 
+                  title="User Type"
+                  aria-label="User Type"
+                  style={{ boxSizing: 'border-box', width: '100%' }}
+                >
                   <option value="" disabled>Select User Type</option>
                   <option value="End User">End User</option>
                   <option value="Administrator">Administrator</option>
@@ -147,16 +195,34 @@ export default function AuthForm({ onLoginSuccess }) {
               </div>
               
               <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Office/Department/Unit:</label>
-                <select value={department} onChange={(e) => setDepartment(e.target.value)} required style={{ boxSizing: 'border-box', width: '100%' }}>
+                <label htmlFor="auth-dept" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Office/Department/Unit:</label>
+                <select 
+                  id="auth-dept" 
+                  value={department} 
+                  onChange={(e) => setDepartment(e.target.value)} 
+                  required 
+                  title="Office or Department"
+                  aria-label="Office or Department"
+                  style={{ boxSizing: 'border-box', width: '100%' }}
+                >
                   <option value="" disabled>Select Department</option>
                   {DEPARTMENTS.map((dept, index) => <option key={index} value={dept}>{dept}</option>)}
                 </select>
               </div>
               
               <div className="form-field-group" style={{ margin: 0, width: '100%' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Contact Number:</label>
-                <input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} required style={{ boxSizing: 'border-box' }} />
+                <label htmlFor="auth-contact" style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#475569', marginBottom: '0.35rem' }}>Contact Number:</label>
+                <input 
+                  id="auth-contact" 
+                  type="tel" 
+                  value={contactNumber} 
+                  onChange={(e) => setContactNumber(e.target.value)} 
+                  required 
+                  placeholder="e.g., 0917XXXXXXX"
+                  title="Contact Number"
+                  aria-label="Contact Number"
+                  style={{ boxSizing: 'border-box' }} 
+                />
               </div>
             </>
           )}
