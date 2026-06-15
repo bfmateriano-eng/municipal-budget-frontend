@@ -70,7 +70,7 @@ export default function AdminAccounts() {
       const res = await fetch('https://municipal-budget-backend.onrender.com/api/users/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ username: email }) // Aligned key syntax to match backend delete payload mapping handler properties
       });
       if (res.ok) {
         alert("Success! Account securely purged from cloud spreadsheet database rows.");
@@ -80,7 +80,9 @@ export default function AdminAccounts() {
   };
 
   const filteredUsers = users.filter(u => {
-    const searchTarget = `${u.nameOfUser} ${u.email} ${u.department} ${u.status}`.toLowerCase();
+    // Aligned to check username string keys coming from database properties mapping context
+    const userEmailAddress = u.username || u.email || '';
+    const searchTarget = `${u.nameOfUser} ${userEmailAddress} ${u.department} ${u.status}`.toLowerCase();
     return searchTarget.includes(searchQuery.toLowerCase());
   });
 
@@ -125,6 +127,7 @@ export default function AdminAccounts() {
               ) : (
                 filteredUsers.map((u, i) => {
                   const standardizedStatus = (u.status || 'pending').trim().toLowerCase();
+                  const targetEmail = u.username || u.email || ''; // Fixed properties extraction mapping handler fallback reference securely
 
                   let statusBg = '#fef3c7'; let statusColor = '#b45309'; 
                   if (standardizedStatus === 'approved') { statusBg = '#dcfce7'; statusColor = '#15803d'; }
@@ -144,7 +147,7 @@ export default function AdminAccounts() {
                         <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: '400', marginTop: '2px' }}>Created: {u.timestamp}</span>
                       </td>
                       
-                      <td style={{ padding: '10px', fontFamily: 'monospace', color: '#334155' }}>{u.email}</td>
+                      <td style={{ padding: '10px', fontFamily: 'monospace', color: '#334155' }}>{targetEmail}</td>
                       
                       <td style={{ padding: '10px', textAlign: 'center' }}>
                         <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700', background: statusBg, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.025em' }}>
@@ -156,7 +159,7 @@ export default function AdminAccounts() {
                         <select 
                           value={u.userType} 
                           disabled={standardizedStatus !== 'approved'} 
-                          onChange={(e) => handleUpdateUserRole(u.email, u.userType, u.department, u.status, 'userType', e.target.value)}
+                          onChange={(e) => handleUpdateUserRole(targetEmail, u.userType, u.department, u.status, 'userType', e.target.value)}
                           style={{ padding: '3px 6px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%', fontWeight: '600', color: u.userType === 'Administrator' ? '#166534' : u.userType === 'BAC Secretary' ? '#6d28d9' : '#475569' }}
                         >
                           <option value="Regular User">Regular User</option>
@@ -169,7 +172,7 @@ export default function AdminAccounts() {
                         <select 
                           value={u.department} 
                           disabled={standardizedStatus !== 'approved'} 
-                          onChange={(e) => handleUpdateUserRole(u.email, u.userType, u.department, u.status, 'department', e.target.value)}
+                          onChange={(e) => handleUpdateUserRole(targetEmail, u.userType, u.department, u.status, 'department', e.target.value)}
                           style={{ padding: '3px 6px', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%', fontWeight: '500' }}
                         >
                           {MUNICIPAL_DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -183,14 +186,14 @@ export default function AdminAccounts() {
                               <button 
                                 type="button" 
                                 style={{ flexGrow: 1, padding: '3px 6px', fontSize: '0.75rem', background: '#10b981', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
-                                onClick={() => handleUpdateUserRole(u.email, u.userType, u.department, u.status, 'status', 'Approved')}
+                                onClick={() => handleUpdateUserRole(targetEmail, u.userType, u.department, u.status, 'status', 'Approved')}
                               >
                                 Approve
                               </button>
                               <button 
                                 type="button" 
                                 style={{ flexGrow: 1, padding: '3px 6px', fontSize: '0.75rem', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
-                                onClick={() => handleUpdateUserRole(u.email, u.userType, u.department, u.status, 'status', 'Rejected')}
+                                onClick={() => handleUpdateUserRole(targetEmail, u.userType, u.department, u.status, 'status', 'Rejected')}
                               >
                                 Reject
                               </button>
@@ -200,7 +203,7 @@ export default function AdminAccounts() {
                               type="button" 
                               className="btn-danger" 
                               style={{ padding: '3px 6px', fontSize: '0.75rem', border: 'none', width: '100%' }}
-                              onClick={() => handleEraseAccount(u.email)}
+                              onClick={() => handleEraseAccount(targetEmail)}
                             >
                               Erase Account
                             </button>
