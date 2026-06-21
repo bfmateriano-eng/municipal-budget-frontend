@@ -219,7 +219,7 @@ export default function BudgetPage({ user }) {
       return;
     }
 
-    // 1. CONSTRUCT THE RELATIONAL CUSTOM INSTITUTIONAL EXCEL HEADER ROWS GRID
+    // 1. CONSTRUCT BUILD ARRAY MATRICES WITH INTEGRATED CELL-OBJECT ASSIGNMENTS
     const matrixPayloadAOA = [
       ["", "Republic of the Philippines"],
       ["", "Province of Rizal"],
@@ -228,52 +228,78 @@ export default function BudgetPage({ user }) {
       ["", "MANDATE, VISION, MISSION, MAJOR FINAL OUTPUT, PERFORMANCE INDICATORS AND TARGETS CY 2027"],
       [],
       ["OFFICE:", String(user?.department || '').toUpperCase()],
-      ["MANDATE:", ""], // Left completely blank for manual post-export spreadsheet modifications
-      ["VISION:", ""],    // Left completely blank for manual post-export spreadsheet modifications
-      ["MISSION:", ""],   // Left completely blank for manual post-export spreadsheet modifications
-      ["ORGANIZATIONAL OUTCOME:", ""], // Left completely blank for manual post-export spreadsheet modifications
+      ["MANDATE:", ""], 
+      ["VISION:", ""],    
+      ["MISSION:", ""],   
+      ["ORGANIZATIONAL OUTCOME:", ""], 
       [],
+      // Row index 12: Split table header setup (Primary)
       [
         "AIP Reference Code",
-        "Program Title",
-        "Project Name",
-        "Activity Name",
+        "Program / Project / Activity (PPA) Description",
         "Major Final Output (MFO)",
         "Performance Indicator / Output",
         "Target for the Budget Year",
-        "PS Allotment (₱)",
-        "MOOE Allotment (₱)",
-        "CO Allotment (₱)",
-        "Total Allotment (₱)",
+        "Budget Year Allotment (Proposed)", "", "", "", // Columns F, G, H, I share this merged category banner
         "Includes Procurement"
-      ]
+      ],
+      // Row index 13: Split table sub-header setup (Secondary)
+      ["", "", "", "", "", "PS", "MOOE", "CO", "Total", ""]
     ];
 
-    // 2. MAP COMPLIANT WORKSPACE RECORD DATA LINES SEQUENTIALLY INSIDE THE ROWS GRID
+    // 2. ITERATE OVER ACTIVE ROWS TO INJECT STRUCTURED DATA DATA OBJECTS (NOT RAW STRINGS)
     budgetLedger.forEach(row => {
       const matchingAip = allAipItems.find(a => a.aipRefCode === row.aipRefCode);
       const isStandalone = !row.activityName || row.activityName.includes('N/A');
-      const normalizedActivity = isStandalone ? 'N/A (Standalone Project Allotment Component)' : row.activityName;
+      
+      const compiledDescription = `PROG: ${row.programTitle || ''}\nPROJ: ${row.projectName || ''}\nACT: ${isStandalone ? 'N/A (Standalone Component)' : row.activityName}`;
 
       matrixPayloadAOA.push([
         row.aipRefCode || '',
-        row.programTitle || '',
-        row.projectName || '',
-        normalizedActivity,
+        compiledDescription,
         matchingAip?.expectedOutput || '—',
         row.performanceIndicator || '—',
         row.targetBudgetYear || '—',
-        row.ps || 0,
-        row.mooe || 0,
-        row.co || 0,
-        row.total || 0,
+        // FINANCIAL MEASURE REQUIREMENTS STORED SECURELY AS EXCEL READABLE FLOAT NUMBER SYMBOLS
+        { t: 'n', v: parseFloat(row.ps) || 0, z: '₱#,##0.00' },
+        { t: 'n', v: parseFloat(row.mooe) || 0, z: '₱#,##0.00' },
+        { t: 'n', v: parseFloat(row.co) || 0, z: '₱#,##0.00' },
+        { t: 'n', v: parseFloat(row.total) || 0, z: '₱#,##0.00' },
         row.includesProcurement || 'No'
       ]);
     });
 
     try {
-      // 3. COMPILE STREAM BUFFER MATRICES AND DISPATCH BROWSER DOWNLOAD PROMPT
+      // 3. GENERATE THE COMPLIANT WORKSHEET CORE USING SHEETJS UTILS
       const worksheet = XLSX.utils.aoa_to_sheet(matrixPayloadAOA);
+
+      // 4. MAP 2D GRID MERGES FOR UNIFIED ALLOTMENT LABELS AND VERTICAL CELLS SPLITS
+      worksheet['!merges'] = [
+        // Merge the main allotment cell across columns F, G, H, I on Row 12 (Index 12)
+        { s: { r: 12, c: 5 }, e: { r: 12, c: 8 } },
+        // Vertically merge standalone data columns (A to E, and J) between row 12 and 13
+        { s: { r: 12, c: 0 }, e: { r: 13, c: 0 } }, // AIP Code
+        { s: { r: 12, c: 1 }, e: { r: 13, c: 1 } }, // Description
+        { s: { r: 12, c: 2 }, e: { r: 13, c: 2 } }, // MFO
+        { s: { r: 12, c: 3 }, e: { r: 13, c: 3 } }, // Indicator
+        { s: { r: 12, c: 4 }, e: { r: 13, c: 4 } }, // Target Year
+        { s: { r: 12, c: 9 }, e: { r: 13, c: 9 } }  // Procurement
+      ];
+
+      // 5. ENFORCE CHARACTER CELL WIDTH CONSTRAINTS TO NEUTRALIZE STRING TRUNCATION OR ### SIGNS
+      worksheet['!cols'] = [
+        { wch: 18 }, // Col A: AIP Reference Code
+        { wch: 45 }, // Col B: PPA Description 
+        { wch: 25 }, // Col C: Major Final Output
+        { wch: 28 }, // Col D: Performance Indicator
+        { wch: 22 }, // Col E: Target Budget Year
+        { wch: 16 }, // Col F: PS Allotment
+        { wch: 16 }, // Col G: MOOE Allotment
+        { wch: 16 }, // Col H: CO Allotment
+        { wch: 18 }, // Col I: Total Allotment
+        { wch: 18 }  // Col J: Procurement
+      ];
+
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "LBF Form No. 4");
       
