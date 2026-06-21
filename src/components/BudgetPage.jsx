@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 export default function BudgetPage({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -212,6 +213,78 @@ export default function BudgetPage({ user }) {
     } catch (err) { alert("Failed to commit allocation data."); }
   };
 
+  const handleExcelExport = () => {
+    if (budgetLedger.length === 0) {
+      alert("No data available to export inside the Form No. 4 matrix tracker.");
+      return;
+    }
+
+    // 1. CONSTRUCT THE RELATIONAL CUSTOM INSTITUTIONAL EXCEL HEADER ROWS GRID
+    const matrixPayloadAOA = [
+      ["", "Republic of the Philippines"],
+      ["", "Province of Rizal"],
+      ["", "MUNICIPAL GOVERNMENT OF PILILLA"],
+      [],
+      ["", "MANDATE, VISION, MISSION, MAJOR FINAL OUTPUT, PERFORMANCE INDICATORS AND TARGETS CY 2027"],
+      [],
+      ["OFFICE:", String(user?.department || '').toUpperCase()],
+      ["MANDATE:", ""], // Left completely blank for manual post-export spreadsheet modifications
+      ["VISION:", ""],    // Left completely blank for manual post-export spreadsheet modifications
+      ["MISSION:", ""],   // Left completely blank for manual post-export spreadsheet modifications
+      ["ORGANIZATIONAL OUTCOME:", ""], // Left completely blank for manual post-export spreadsheet modifications
+      [],
+      [
+        "AIP Reference Code",
+        "Program Title",
+        "Project Name",
+        "Activity Name",
+        "Major Final Output (MFO)",
+        "Performance Indicator / Output",
+        "Target for the Budget Year",
+        "PS Allotment (₱)",
+        "MOOE Allotment (₱)",
+        "CO Allotment (₱)",
+        "Total Allotment (₱)",
+        "Includes Procurement"
+      ]
+    ];
+
+    // 2. MAP COMPLIANT WORKSPACE RECORD DATA LINES SEQUENTIALLY INSIDE THE ROWS GRID
+    budgetLedger.forEach(row => {
+      const matchingAip = allAipItems.find(a => a.aipRefCode === row.aipRefCode);
+      const isStandalone = !row.activityName || row.activityName.includes('N/A');
+      const normalizedActivity = isStandalone ? 'N/A (Standalone Project Allotment Component)' : row.activityName;
+
+      matrixPayloadAOA.push([
+        row.aipRefCode || '',
+        row.programTitle || '',
+        row.projectName || '',
+        normalizedActivity,
+        matchingAip?.expectedOutput || '—',
+        row.performanceIndicator || '—',
+        row.targetBudgetYear || '—',
+        row.ps || 0,
+        row.mooe || 0,
+        row.co || 0,
+        row.total || 0,
+        row.includesProcurement || 'No'
+      ]);
+    });
+
+    try {
+      // 3. COMPILE STREAM BUFFER MATRICES AND DISPATCH BROWSER DOWNLOAD PROMPT
+      const worksheet = XLSX.utils.aoa_to_sheet(matrixPayloadAOA);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "LBF Form No. 4");
+      
+      const fileBrandName = `LBF_Form4_CY2027_${String(user?.department || 'Office').replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
+      XLSX.writeFile(workbook, fileBrandName);
+    } catch (error) {
+      console.error(error);
+      alert("Critical error encountered generating data spreadsheet stream workbook mapping layout.");
+    }
+  };
+
   return (
     <div className="main-content-stream" style={{ width: '100vw', maxWidth: '100%', padding: '0 1rem', fontFamily: '"Inter", sans-serif', color: '#1e293b', boxSizing: 'border-box' }}>
       
@@ -234,7 +307,14 @@ export default function BudgetPage({ user }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', gap: '0.75rem' }}>
+          <button 
+            className="btn-secondary" 
+            style={{ padding: '0.6rem 1.25rem', borderRadius: '6px', fontWeight: '600', backgroundColor: '#1e3a8a', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+            onClick={handleExcelExport}
+          >
+            💙 Export Form 4 Excel
+          </button>
           <button className="btn-primary" style={{ padding: '0.6rem 1.25rem', borderRadius: '6px', fontWeight: '600' }} onClick={handleOpenImportModal}>+ Add PPA from AIP</button>
         </div>
       </div>
