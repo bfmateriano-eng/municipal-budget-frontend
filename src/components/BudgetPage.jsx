@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 
 export default function BudgetPage({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -214,119 +213,102 @@ export default function BudgetPage({ user }) {
   };
 
   const handleExcelExport = () => {
-    // Filter out rows where the total sum budget content is exactly 0 before initializing build
-    const activeBudgetRows = budgetLedger.filter(row => {
-      const psVal = parseFloat(row.ps) || 0;
-      const mooeVal = parseFloat(row.mooe) || 0;
-      const coVal = parseFloat(row.co) || 0;
-      return (psVal + mooeVal + coVal) > 0;
-    });
-
-    if (activeBudgetRows.length === 0) {
-      alert("No active data entries with non-zero values are available to export inside the Form No. 4 ledger.");
+    // Check if there are non-zero budget ledger items available
+    const activeEntries = budgetLedger.filter(row => (parseFloat(row.total) || 0) > 0);
+    if (activeEntries.length === 0) {
+      alert("No active data items with values greater than zero are available to generate reports.");
       return;
     }
 
-    // 1. CONSTRUCT BUILD ARRAY MATRICES REFLECTING PROVINCIAL MARGIN BLUEPRINTS
-    const matrixPayloadAOA = [
-      ["", "Republic of the Philippines"],
-      ["", "Province of Rizal"],
-      ["", "MUNICIPAL GOVERNMENT OF PILILLA"],
-      [],
-      ["", "MANDATE, VISION, MISSION, MAJOR FINAL OUTPUT, PERFORMANCE INDICATORS AND TARGETS CY 2027"],
-      [],
-      ["OFFICE:", String(user?.department || '').toUpperCase()],
-      ["MANDATE:", ""], 
-      ["VISION:", ""],    
-      ["MISSION:", ""],   
-      ["ORGANIZATIONAL OUTCOME:", ""], 
-      [],
-      // Row index 12: Unified Category Table Banners
-      [
-        "AIP Reference Code",
-        "Program / Project / Activity (PPA) Description",
-        "Major Final Output (MFO)",
-        "Performance Indicator / Output",
-        "Target for the Budget Year",
-        "Budget Year Allotment (Proposed)", "", "", "", 
-        "Includes Procurement"
-      ],
-      // Row index 13: Split Table Allotments Sub-headers
-      ["", "", "", "", "", "PS", "MOOE", "CO", "Total", ""]
-    ];
+    // 1. GENERATE THE TARGET EXCEL WEB COMPLIANT WRAPPER MARKUP WITH GOVERNMENT METADATA HEADERS
+    let tableHtml = `
+      <table border="1" style="border-collapse:collapse; font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; color:#1e293b;">
+        <thead>
+          <tr><th colspan="10" style="text-align:center; font-size:15px; font-weight:700; border:none; padding:3px 0;">Republic of the Philippines</th></tr>
+          <tr><th colspan="10" style="text-align:center; font-size:13px; font-weight:600; border:none; padding:2px 0;">Province of Rizal</th></tr>
+          <tr><th colspan="10" style="text-align:center; font-size:15px; font-weight:800; color:#1e3a8a; border:none; padding:3px 0;">MUNICIPAL GOVERNMENT OF PILILLA</th></tr>
+          <tr><th colspan="10" style="border:none;">&nbsp;</th></tr>
+          <tr><th colspan="10" style="text-align:center; font-size:14px; font-weight:800; border:none; padding:4px 0;">MANDATE, VISION, MISSION, MAJOR FINAL OUTPUT, PERFORMANCE INDICATORS AND TARGETS CY 2027</th></tr>
+          <tr><th colspan="10" style="border:none;">&nbsp;</th></tr>
+          <tr><th colspan="10" style="text-align:left; font-size:13px; font-weight:700; border:none; padding:3px 0;">OFFICE: ${String(user?.department || '').toUpperCase()}</th></tr>
+          <tr><th colspan="10" style="text-align:left; font-size:13px; font-weight:700; border:none; padding:3px 0;">MANDATE: __________________________________________________________________________________________</th></tr>
+          <tr><th colspan="10" style="text-align:left; font-size:13px; font-weight:700; border:none; padding:3px 0;">VISION: ___________________________________________________________________________________________</th></tr>
+          <tr><th colspan="10" style="text-align:left; font-size:13px; font-weight:700; border:none; padding:3px 0;">MISSION: __________________________________________________________________________________________</th></tr>
+          <tr><th colspan="10" style="text-align:left; font-size:13px; font-weight:700; border:none; padding:3px 0;">ORGANIZATIONAL OUTCOME: ___________________________________________________________________________</th></tr>
+          <tr><th colspan="10" style="border:none;">&nbsp;</th></tr>
+          
+          <tr style="background-color:#f1f5f9; font-weight:700; text-align:center;">
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle;">AIP Reference Code</th>
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle; text-align:left;">Program / Project / Activity (PPA) Description</th>
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle; text-align:left;">Major Final Output (MFO)</th>
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle; text-align:left;">Performance Indicator / Output</th>
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle; text-align:left;">Target for the Budget Year</th>
+            <th colspan="4" style="padding:6px; border:1px solid #cbd5e1; color:#1e3a8a; background-color:#e0f2fe;">Budget Year Allotment (Proposed)</th>
+            <th rowspan="2" style="padding:10px 6px; border:1px solid #cbd5e1; vertical-align:middle;">Includes Procurement</th>
+          </tr>
+          <tr style="background-color:#f8fafc; font-weight:700; text-align:center;">
+            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right;">PS</th>
+            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right;">MOOE</th>
+            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right;">CO</th>
+            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-weight:800; color:#166534; background-color:#f0fdf4;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
 
-    // 2. MAP ACCURATE ROW FIELDS OBJECTS (REMOVED ₱ CURRENCY MASK SYMBOLS)
-    activeBudgetRows.forEach(row => {
-      const matchingAip = allAipItems.find(a => a.aipRefCode === row.aipRefCode);
-      const isStandalone = !row.activityName || row.activityName.includes('N/A');
-      const compiledDescription = `PROG: ${row.programTitle || ''}\nPROJ: ${row.projectName || ''}\nACT: ${isStandalone ? 'N/A (Standalone Component)' : row.activityName}`;
+    // 2. CONSTRUCT NESTED TREE ARCHITECTURE - SHOWS PROGRAMS, PROJECTS AND COMPLIANT CHILD ACTIVITIES
+    const uniqueProgs = [...new Set(activeEntries.map(item => item?.programTitle).filter(Boolean))];
+    uniqueProgs.forEach(prog => {
+      tableHtml += `
+        <tr style="background-color:#e0f2fe; font-weight:800; font-size:13px;">
+          <td colspan="10" style="padding:8px; color:#1e3a8a; border:1px solid #cbd5e1;">🎯 PROGRAM: ${prog.toUpperCase()}</td>
+        </tr>
+      `;
 
-      matrixPayloadAOA.push([
-        row.aipRefCode || '',
-        compiledDescription,
-        matchingAip?.expectedOutput || '—',
-        row.performanceIndicator || '—',
-        row.targetBudgetYear || '—',
-        // Formatting changed to raw accounting numbers with comma grouping masks
-        { t: 'n', v: parseFloat(row.ps) || 0, z: '#,##0.00' },
-        { t: 'n', v: parseFloat(row.mooe) || 0, z: '#,##0.00' },
-        { t: 'n', v: parseFloat(row.co) || 0, z: '#,##0.00' },
-        { t: 'n', v: parseFloat(row.total) || 0, z: '#,##0.00' },
-        row.includesProcurement || 'No'
-      ]);
+      const progItems = activeEntries.filter(item => item && item.programTitle === prog);
+      const uniqueProjs = [...new Set(progItems.map(item => item?.projectName).filter(Boolean))];
+
+      uniqueProjs.forEach(proj => {
+        tableHtml += `
+          <tr style="background-color:#f8fafc; font-weight:700; font-size:12px;">
+            <td colspan="10" style="padding:7px 7px 7px 24px; color:#334155; border:1px solid #cbd5e1;">📁 PROJECT: ${proj}</td>
+          </tr>
+        `;
+
+        const actItems = progItems.filter(item => item && item.projectName === proj);
+        actItems.forEach(act => {
+          const matchingAip = allAipItems.find(a => a.aipRefCode === act.aipRefCode);
+          const isStandalone = !act.activityName || act.activityName.includes('N/A');
+          
+          tableHtml += `
+            <tr>
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:700; color:#0369a1;">${act.aipRefCode}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; padding-left:40px; font-weight:600; color:#1e293b;">🌿 ${isStandalone ? 'Standalone Component' : act.activityName}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; color:#475569;">${matchingAip?.expectedOutput || '—'}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; color:#475569; font-style:italic;">${act.performanceIndicator || '—'}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; color:#0f172a; font-weight:700;">${act.targetBudgetYear || '—'}</td>
+              
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-family:monospace;">${act.ps.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-family:monospace;">${act.mooe.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-family:monospace;">${act.co.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-family:monospace; font-weight:700; color:#166534; background-color:#f0fdf4;">${act.total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+              
+              <td style="padding:6px; border:1px solid #cbd5e1; text-align:center; fontWeight:600;">${act.includesProcurement || 'No'}</td>
+            </tr>
+          `;
+        });
+      });
     });
 
-    try {
-      const worksheet = XLSX.utils.aoa_to_sheet(matrixPayloadAOA);
+    tableHtml += `</tbody></table>`;
 
-      // 3. MAP 2D GRID MERGES FOR LANDSCAPE SHEET STRUCTURE
-      worksheet['!merges'] = [
-        { s: { r: 12, c: 5 }, e: { r: 12, c: 8 } },
-        { s: { r: 12, c: 0 }, e: { r: 13, c: 0 } }, 
-        { s: { r: 12, c: 1 }, e: { r: 13, c: 1 } }, 
-        { s: { r: 12, c: 2 }, e: { r: 13, c: 2 } }, 
-        { s: { r: 12, c: 3 }, e: { r: 13, c: 3 } }, 
-        { s: { r: 12, c: 4 }, e: { r: 13, c: 4 } }, 
-        { s: { r: 12, c: 9 }, e: { r: 13, c: 9 } }  
-      ];
-
-      // 4. MAP COLUMNS CHARACTERS MARGIN CONSTRAINTS
-      worksheet['!cols'] = [
-        { wch: 18 }, // AIP Reference Code
-        { wch: 45 }, // PPA Description 
-        { wch: 25 }, // Major Final Output
-        { wch: 28 }, // Performance Indicator
-        { wch: 22 }, // Target Budget Year
-        { wch: 16 }, // PS Allotment
-        { wch: 16 }, // MOOE Allotment
-        { wch: 16 }, // CO Allotment
-        { wch: 18 }, // Total Allotment
-        { wch: 18 }  // Procurement
-      ];
-
-      // 5. ENFORCE RIGID 8.5x13 LONG LANDSCAPE PAGE LAYOUT AND 0.5INCH BORDERS
-      worksheet['!pageSetup'] = {
-        orientation: 'landscape',
-        paperSize: 13, // Standard code for 8.5 x 13 (Long/F4) Paper size specifications
-        scale: 100
-      };
-      
-      // Strict 0.5 inch borders all around
-      worksheet['!margins'] = {
-        left: 0.5, right: 0.5,
-        top: 0.5, bottom: 0.5,
-        header: 0.3, footer: 0.3
-      };
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "LBF Form No. 4");
-      
-      const fileBrandName = `LBF_Form4_CY2027_${String(user?.department || 'Office').replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
-      XLSX.writeFile(workbook, fileBrandName);
-    } catch (error) {
-      console.error(error);
-      alert("Critical error encountered generating data spreadsheet stream workbook mapping layout.");
-    }
+    // 3. GENERATE BINARY STREAM EXCEL DATA CARRIER WITH 0.5INCH MARGIN ATTRIBUTES
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LBF_Form4_Report_2027_${String(user?.department || 'Office').replace(/[^a-zA-Z0-9]/g, '_')}.xls`;
+    a.click();
   };
 
   return (
@@ -338,7 +320,7 @@ export default function BudgetPage({ user }) {
           <span style={{ position: 'absolute', right: 0, top: 0, fontFamily: 'monospace', fontWeight: '700', fontSize: '0.85rem', color: '#475569', background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px' }}>
             Local Budget Form No. 4
           </span>
-          <h2 style={{ margin: '0 0 6px 0', fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>
+          <h2 style={{ margin: '10px 0 6px 0', fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em' }}>
             PROGRAMMED APPROPRIATION AND OBLIGATION BY OBJECT OF EXPENDITURE
           </h2>
           <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: '600', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
